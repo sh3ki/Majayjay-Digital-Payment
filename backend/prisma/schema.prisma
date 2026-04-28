@@ -1,0 +1,482 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum FeeType {
+  FIXED
+  VARIABLE
+  PERCENTAGE
+  TIERED
+}
+
+enum ApplicableTo {
+  INDIVIDUAL
+  BUSINESS
+  BOTH
+}
+
+enum BillStatus {
+  DRAFT
+  ISSUED
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+  OVERDUE
+}
+
+enum PenaltyType {
+  LATE
+  INTEREST
+  SURCHARGE
+}
+
+enum CalculationMethod {
+  FIXED
+  PERCENTAGE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum ReceiptStatus {
+  GENERATED
+  DELIVERED
+  PRINTED
+  CANCELLED
+}
+
+enum QRStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  CANCELLED
+}
+
+enum ChargeStatus {
+  ACTIVE
+  USED
+  EXPIRED
+}
+
+enum AuditAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  VERIFY
+  APPROVE
+  REJECT
+}
+
+enum AuditStatus {
+  SUCCESS
+  FAILURE
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  roleName    String   @unique @map("role_name")
+  description String?
+  permissions Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model Department {
+  id               Int      @id @default(autoincrement())
+  departmentName   String   @map("department_name")
+  departmentHeadId Int?     @map("department_head_id")
+  contactEmail     String?  @map("contact_email")
+  contactPhone     String?  @map("contact_phone")
+  officeLocation   String?  @map("office_location")
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("departments")
+}
+
+model User {
+  id              Int        @id @default(autoincrement())
+  email           String     @unique
+  passwordHash    String     @map("password_hash")
+  firstName       String     @map("first_name")
+  lastName        String     @map("last_name")
+  contactNumber   String     @map("contact_number")
+  roleId          Int        @map("role_id")
+  departmentId    Int?       @map("department_id")
+  status          UserStatus @default(ACTIVE)
+  emailVerified   Boolean    @default(false) @map("email_verified")
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  lastLoginAt     DateTime?  @map("last_login_at")
+  lastLoginIp     String?    @map("last_login_ip")
+  twoFaEnabled    Boolean    @default(false) @map("two_fa_enabled")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  createdById     Int?       @map("created_by")
+  updatedById     Int?       @map("updated_by")
+
+  role          Role           @relation(fields: [roleId], references: [id])
+  department    Department?    @relation(fields: [departmentId], references: [id])
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  createdBills  Bill[]         @relation("billCreator")
+  payerBills    Bill[]         @relation("billPayer")
+  payments      Payment[]      @relation("payerPayments")
+  cashierPayments Payment[]    @relation("cashierPayments")
+
+  @@index([email])
+  @@index([roleId])
+  @@index([status])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       Int      @map("user_id")
+  token        String
+  refreshToken String   @map("refresh_token")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  deviceType   String?  @map("device_type")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model FeeCategory {
+  id           Int      @id @default(autoincrement())
+  categoryName String   @map("category_name")
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  fees Fee[]
+
+  @@map("fee_categories")
+}
+
+model Fee {
+  id                Int          @id @default(autoincrement())
+  feeName           String       @map("fee_name")
+  description       String?
+  categoryId        Int          @map("category_id")
+  feeType           FeeType      @default(FIXED) @map("fee_type")
+  baseAmount        Decimal?     @db.Decimal(12, 2) @map("base_amount")
+  unitName          String?      @map("unit_name")
+  unitRate          Decimal?     @db.Decimal(12, 2) @map("unit_rate")
+  percentageRate    Decimal?     @db.Decimal(5, 2) @map("percentage_rate")
+  tierConfiguration Json?        @map("tier_configuration")
+  applicableTo      ApplicableTo @default(BOTH) @map("applicable_to")
+  active            Boolean      @default(true)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  createdById       Int?         @map("created_by")
+  updatedById       Int?         @map("updated_by")
+
+  category     FeeCategory   @relation(fields: [categoryId], references: [id])
+  billItems    BillItem[]
+  penaltyRules PenaltyRule[]
+
+  @@index([categoryId])
+  @@index([active])
+  @@map("fees")
+}
+
+model Bill {
+  id             Int        @id @default(autoincrement())
+  billNumber     String     @unique @map("bill_number")
+  payerId        Int        @map("payer_id")
+  billDate       DateTime   @db.Date @map("bill_date")
+  dueDate        DateTime   @db.Date @map("due_date")
+  totalAmount    Decimal    @db.Decimal(12, 2) @map("total_amount")
+  paidAmount     Decimal    @default(0) @db.Decimal(12, 2) @map("paid_amount")
+  balanceAmount  Decimal    @db.Decimal(12, 2) @map("balance_amount")
+  penaltyAmount  Decimal    @default(0) @db.Decimal(12, 2) @map("penalty_amount")
+  discountAmount Decimal    @default(0) @db.Decimal(12, 2) @map("discount_amount")
+  status         BillStatus @default(DRAFT)
+  notes          String?
+  createdById    Int        @map("created_by")
+  updatedById    Int?       @map("updated_by")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  payer    User              @relation("billPayer", fields: [payerId], references: [id])
+  creator  User              @relation("billCreator", fields: [createdById], references: [id])
+  items    BillItem[]
+  payments Payment[]
+  penalties Penalty[]
+  qrCodes  QRCode[]
+  receipts OfficialReceipt[]
+
+  @@index([payerId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+  @@map("bills")
+}
+
+model BillItem {
+  id        Int      @id @default(autoincrement())
+  billId    Int      @map("bill_id")
+  feeId     Int      @map("fee_id")
+  feeName   String   @map("fee_name")
+  unitCount Decimal? @db.Decimal(10, 2) @map("unit_count")
+  unitPrice Decimal? @db.Decimal(12, 2) @map("unit_price")
+  amount    Decimal  @db.Decimal(12, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  fee  Fee  @relation(fields: [feeId], references: [id])
+
+  @@index([billId])
+  @@map("bill_items")
+}
+
+model PenaltyRule {
+  id               Int               @id @default(autoincrement())
+  feeId            Int               @map("fee_id")
+  penaltyType      PenaltyType       @map("penalty_type")
+  calculationMethod CalculationMethod @map("calculation_method")
+  amountOrRate     Decimal           @db.Decimal(12, 2) @map("amount_or_rate")
+  gracePeriodDays  Int               @default(0) @map("grace_period_days")
+  maxPenaltyAmount Decimal?          @db.Decimal(12, 2) @map("max_penalty_amount")
+  applyMonthly     Boolean           @default(false) @map("apply_monthly")
+  active           Boolean           @default(true)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  createdById      Int?              @map("created_by")
+
+  fee       Fee       @relation(fields: [feeId], references: [id])
+  penalties Penalty[]
+
+  @@index([feeId])
+  @@map("penalty_rules")
+}
+
+model Penalty {
+  id            Int      @id @default(autoincrement())
+  billId        Int      @map("bill_id")
+  penaltyRuleId Int      @map("penalty_rule_id")
+  penaltyAmount Decimal  @db.Decimal(12, 2) @map("penalty_amount")
+  appliedDate   DateTime @db.Date @map("applied_date")
+  reason        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  bill Bill        @relation(fields: [billId], references: [id])
+  rule PenaltyRule @relation(fields: [penaltyRuleId], references: [id])
+
+  @@index([billId])
+  @@map("penalties")
+}
+
+model PaymentMethod {
+  id                   Int      @id @default(autoincrement())
+  methodName           String   @unique @map("method_name")
+  provider             String?
+  isActive             Boolean  @default(true) @map("is_active")
+  requiresVerification Boolean  @default(false) @map("requires_verification")
+  maxTransactionAmount Decimal? @db.Decimal(12, 2) @map("max_transaction_amount")
+  minTransactionAmount Decimal? @db.Decimal(12, 2) @map("min_transaction_amount")
+  settlementDays       Int?     @map("settlement_days")
+  transactionFeePercent Decimal? @db.Decimal(5, 2) @map("transaction_fee_percent")
+  fixedFee             Decimal? @db.Decimal(12, 2) @map("fixed_fee")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  payments Payment[]
+
+  @@map("payment_methods")
+}
+
+model Payment {
+  id              Int           @id @default(autoincrement())
+  transactionId   String        @unique @map("transaction_id")
+  billId          Int?          @map("bill_id")
+  payerId         Int           @map("payer_id")
+  amount          Decimal       @db.Decimal(12, 2)
+  paymentMethodId Int           @map("payment_method_id")
+  status          PaymentStatus @default(PENDING)
+  referenceNumber String?       @map("reference_number")
+  cashierId       Int?          @map("cashier_id")
+  terminalId      String?       @map("terminal_id")
+  paymentDate     DateTime      @map("payment_date")
+  verifiedAt      DateTime?     @map("verified_at")
+  verifiedById    Int?          @map("verified_by")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  bill    Bill?           @relation(fields: [billId], references: [id])
+  payer   User            @relation("payerPayments", fields: [payerId], references: [id])
+  cashier User?           @relation("cashierPayments", fields: [cashierId], references: [id])
+  method  PaymentMethod   @relation(fields: [paymentMethodId], references: [id])
+  receipt OfficialReceipt?
+
+  @@index([billId])
+  @@index([payerId])
+  @@index([status])
+  @@index([paymentDate])
+  @@map("payments")
+}
+
+model OfficialReceipt {
+  id            Int           @id @default(autoincrement())
+  orNumber      String        @unique @map("or_number")
+  receiptId     String        @unique @default(uuid()) @map("receipt_id")
+  paymentId     Int           @unique @map("payment_id")
+  billId        Int?          @map("bill_id")
+  amountPaid    Decimal       @db.Decimal(12, 2) @map("amount_paid")
+  paymentMethod String?       @map("payment_method")
+  cashierId     Int?          @map("cashier_id")
+  terminalId    String?       @map("terminal_id")
+  orData        Json?         @map("or_data")
+  status        ReceiptStatus @default(GENERATED)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+  bill    Bill?   @relation(fields: [billId], references: [id])
+
+  @@index([orNumber])
+  @@index([paymentId])
+  @@map("official_receipts")
+}
+
+model QRCode {
+  id            Int      @id @default(autoincrement())
+  qrCode        String   @unique @default(uuid()) @map("qr_code")
+  billId        Int?     @map("bill_id")
+  transactionId String?  @map("transaction_id")
+  amount        Decimal  @db.Decimal(12, 2)
+  feeType       String?  @map("fee_type")
+  payerReference String? @map("payer_reference")
+  qrImageUrl    String?  @map("qr_image_url")
+  encodedData   Json?    @map("encoded_data")
+  status        QRStatus @default(ACTIVE)
+  scannedCount  Int      @default(0) @map("scanned_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  expiresAt     DateTime @map("expires_at")
+  usedAt        DateTime? @map("used_at")
+
+  bill Bill? @relation(fields: [billId], references: [id])
+
+  @@index([billId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("qr_codes")
+}
+
+model OnDemandCharge {
+  id             Int          @id @default(autoincrement())
+  chargeNumber   String       @unique @map("charge_number")
+  payerId        Int?         @map("payer_id")
+  payerName      String?      @map("payer_name")
+  feeDescription String       @map("fee_description")
+  amount         Decimal      @db.Decimal(12, 2)
+  createdById    Int          @map("created_by")
+  status         ChargeStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  expiresAt      DateTime     @map("expires_at")
+  usedAt         DateTime?    @map("used_at")
+
+  @@index([payerId])
+  @@index([status])
+  @@map("on_demand_charges")
+}
+
+model AuditLog {
+  id         BigInt      @id @default(autoincrement())
+  eventType  String      @map("event_type")
+  userId     Int?        @map("user_id")
+  entityType String      @map("entity_type")
+  entityId   String      @map("entity_id")
+  action     AuditAction
+  oldValue   String?     @map("old_value")
+  newValue   String?     @map("new_value")
+  ipAddress  String?     @map("ip_address")
+  userAgent  String?     @map("user_agent")
+  status     AuditStatus @default(SUCCESS)
+  reason     String?
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt(sort: Desc)])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id                Int                @id @default(autoincrement())
+  recipientId       Int                @map("recipient_id")
+  notificationType  String             @map("notification_type")
+  title             String?
+  message           String
+  channel           NotificationChannel
+  status            NotificationStatus @default(PENDING)
+  relatedEntityType String?            @map("related_entity_type")
+  relatedEntityId   String?            @map("related_entity_id")
+  sentAt            DateTime?          @map("sent_at")
+  readAt            DateTime?          @map("read_at")
+  errorMessage      String?            @map("error_message")
+  createdAt         DateTime           @default(now()) @map("created_at")
+
+  recipient User @relation(fields: [recipientId], references: [id])
+
+  @@index([recipientId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notifications")
+}
