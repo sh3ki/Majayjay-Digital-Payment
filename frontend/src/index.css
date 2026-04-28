@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+  background-color: #f5f5f5;
+  color: #424242;
+  -webkit-font-smoothing: antialiased;
+}
+
+:root {
+  --primary: #00873e;
+  --primary-light: #e8f5e9;
+  --primary-dark: #004d2e;
+  --primary-accent: #26a69a;
+  --success: #4caf50;
+  --warning: #ffc107;
+  --error: #f44336;
+  --info: #2196f3;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-paid { background: #E8F5E9; color: #004D2E; }
+.badge-unpaid { background: #FFF8E1; color: #F57F17; }
+.badge-overdue { background: #FFEBEE; color: #C62828; }
+.badge-pending { background: #E3F2FD; color: #0D47A1; }
+.badge-cancelled { background: #F5F5F5; color: #757575; }
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.section-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
