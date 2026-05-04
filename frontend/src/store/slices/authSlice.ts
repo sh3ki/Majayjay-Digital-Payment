@@ -86,7 +86,22 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchMeAsync.fulfilled, (state, action) => { state.user = action.payload; })
+      .addCase(fetchMeAsync.pending, (state) => { state.isLoading = true; })
+      .addCase(fetchMeAsync.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(fetchMeAsync.rejected, (state) => {
+        // Token was invalid/expired — clear auth state; ProtectedRoute will handle gating
+        state.isLoading = false;
+        state.user = null;
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.isAuthenticated = false;
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+      })
       .addCase(logoutAsync.fulfilled, (state) => {
         state.user = null;
         state.accessToken = null;

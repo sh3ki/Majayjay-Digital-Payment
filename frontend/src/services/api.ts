@@ -34,7 +34,8 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        // Do not hard-redirect — let Redux auth state and ProtectedRoute handle it
+        // so public pages (e.g. landing page) are not forcibly sent to /login
       }
     }
     return Promise.reject(error);
