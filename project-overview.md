@@ -103,7 +103,7 @@ A comprehensive digital payment and transaction management system that:
 ## 🎨 Design Philosophy
 
 ### Visual Design
-- **Color Palette**: Green theme (professional, trustworthy, financial)
+- **Color Palette**: Blue theme (professional, trustworthy, financial)
 - **Style**: Modern, minimalist, yet highly professional
 - **Layout**: Clean, organized, intuitive navigation
 - **Responsiveness**: Mobile-first, works on all devices
@@ -355,7 +355,7 @@ For questions or issues related to this project:
 
 ## 📌 Important Notes
 
-- **Green Color Palette**: All UI designs use green theme for professional, trustworthy appearance
+- **Blue Color Palette**: All UI designs use blue theme for professional, trustworthy appearance
 - **Modern Design**: Clean, minimalist interface for optimal user experience
 - **Mobile-First**: System designed for mobile and desktop access
 - **PayMongo Integration**: Payment processing handled securely through PayMongo

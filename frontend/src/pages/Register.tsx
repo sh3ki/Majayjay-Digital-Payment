@@ -58,7 +58,7 @@ const Register: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #004D2E 0%, #00873E 100%)',
+        background: 'linear-gradient(135deg, #0D47A1 0%, #1565C0 100%)',
         p: 2,
       }}
     >
@@ -73,8 +73,8 @@ const Register: React.FC = () => {
         <Card sx={{ borderRadius: 3 }}>
           <CardContent sx={{ p: 4 }}>
             <Box display="flex" alignItems="center" gap={1} mb={3}>
-              <PersonAdd sx={{ color: '#00873E' }} />
-              <Typography variant="h5" fontWeight={700} color="#004D2E">Register</Typography>
+              <PersonAdd sx={{ color: '#1565C0' }} />
+              <Typography variant="h5" fontWeight={700} color="#0D47A1">Register</Typography>
             </Box>
 
             {error && <Alert severity="error" onClose={clear} sx={{ mb: 2 }}>{error}</Alert>}
@@ -116,7 +116,7 @@ const Register: React.FC = () => {
             <Box textAlign="center" mt={3}>
               <Typography variant="body2" color="text.secondary">
                 Already have an account?{' '}
-                <Link to="/login" style={{ color: '#00873E', fontWeight: 600, textDecoration: 'none' }}>
+                <Link to="/login" style={{ color: '#1565C0', fontWeight: 600, textDecoration: 'none' }}>
                   Sign in here
                 </Link>
               </Typography>

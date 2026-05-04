@@ -56,7 +56,7 @@ const Departments: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#004D2E">Departments</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">Departments</Typography>
           <Typography variant="body2" color="text.secondary">Manage municipal departments</Typography>
         </Box>
         <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Add Department</Button>
@@ -66,7 +66,7 @@ const Departments: React.FC = () => {
 
       <Card>
         <CardContent>
-          {loading ? <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#00873E' }} /></Box> : (
+          {loading ? <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box> : (
             <Box sx={{ overflowX: 'auto' }}>
               <Table>
                 <TableHead>

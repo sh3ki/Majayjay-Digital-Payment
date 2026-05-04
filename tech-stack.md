@@ -409,7 +409,7 @@ import QRCode from 'qrcode.react';
   - Utility-first approach
   - Minimal CSS output
   - Easy theming
-  - Green color customization
+  - Blue color customization
 
 **Tailwind Configuration:**
 ```javascript
@@ -418,10 +418,10 @@ module.exports = {
     extend: {
       colors: {
         green: {
-          primary: '#00873E',
-          light: '#E8F5E9',
-          dark: '#004D2E',
-          accent: '#26A69A'
+          primary: '#1565C0',
+          light: '#E3F2FD',
+          dark: '#0D47A1',
+          accent: '#42A5F5'
         }
       }
     }

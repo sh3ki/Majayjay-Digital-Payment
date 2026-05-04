@@ -38,7 +38,7 @@ const AuditLogs: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#004D2E">Audit Logs</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">Audit Logs</Typography>
           <Typography variant="body2" color="text.secondary">System activity trail and security events</Typography>
         </Box>
       </Box>
@@ -65,7 +65,7 @@ const AuditLogs: React.FC = () => {
           </Box>
 
           {loading ? (
-            <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#00873E' }} /></Box>
+            <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
           ) : (
             <>
               <Box sx={{ overflowX: 'auto' }}>

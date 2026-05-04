@@ -78,7 +78,7 @@ const PenaltyRules: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#004D2E">Penalty Rules</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">Penalty Rules</Typography>
           <Typography variant="body2" color="text.secondary">Configure late payment penalties and surcharges</Typography>
         </Box>
         <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Add Rule</Button>
@@ -88,7 +88,7 @@ const PenaltyRules: React.FC = () => {
 
       <Card>
         <CardContent>
-          {loading ? <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#00873E' }} /></Box> : (
+          {loading ? <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box> : (
             <Box sx={{ overflowX: 'auto' }}>
               <Table>
                 <TableHead>

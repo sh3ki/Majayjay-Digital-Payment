@@ -120,7 +120,7 @@ const CreateBill: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#004D2E">Create Bill</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">Create Bill</Typography>
           <Typography variant="body2" color="text.secondary">Generate a new bill for a payer</Typography>
         </Box>
         <Button variant="outlined" onClick={() => navigate('/bills')}>Cancel</Button>
@@ -133,7 +133,7 @@ const CreateBill: React.FC = () => {
           <Grid item xs={12} md={7}>
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Payer Information</Typography>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Payer Information</Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <Autocomplete
@@ -177,7 +177,7 @@ const CreateBill: React.FC = () => {
 
             <Card>
               <CardContent>
-                <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Fee Items</Typography>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Fee Items</Typography>
                 <Box display="flex" gap={1} mb={2}>
                   <Autocomplete
                     sx={{ flex: 1 }}
@@ -244,7 +244,7 @@ const CreateBill: React.FC = () => {
           <Grid item xs={12} md={5}>
             <Card sx={{ position: 'sticky', top: 16 }}>
               <CardContent>
-                <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Summary</Typography>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Summary</Typography>
                 {items.map((item) => (
                   <Box key={item.feeId} display="flex" justifyContent="space-between" py={0.5}>
                     <Typography variant="body2">{item.fee.feeName}</Typography>
@@ -254,7 +254,7 @@ const CreateBill: React.FC = () => {
                 <Divider sx={{ my: 1.5 }} />
                 <Box display="flex" justifyContent="space-between" mb={3}>
                   <Typography fontWeight={700} variant="h6">Total</Typography>
-                  <Typography fontWeight={700} variant="h6" color="#00873E">{formatCurrency(total)}</Typography>
+                  <Typography fontWeight={700} variant="h6" color="#1565C0">{formatCurrency(total)}</Typography>
                 </Box>
                 <Button
                   type="submit" variant="contained" fullWidth size="large"

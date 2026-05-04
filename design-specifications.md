@@ -4,42 +4,42 @@
 
 ---
 
-## 🌈 Color Palette (Green Theme)
+## 🌈 Color Palette (Blue Theme)
 
 ### Primary Colors
 
-#### Primary Green
+#### Primary Blue
 ```
-Hex: #00873E
-RGB: (0, 135, 62)
-HSL: (147°, 100%, 27%)
+Hex: #1565C0
+RGB: (21, 101, 192)
+HSL: (213°, 80%, 42%)
 Usage: Main buttons, active elements, primary CTAs
 Applications: Login button, Pay button, Success states
 ```
 
-#### Light Green
+#### Light Blue
 ```
-Hex: #E8F5E9
-RGB: (232, 245, 233)
-HSL: (135°, 62%, 94%)
+Hex: #E3F2FD
+RGB: (227, 242, 253)
+HSL: (207°, 89%, 94%)
 Usage: Backgrounds, subtle accents, hover states
 Applications: Card backgrounds, section dividers, success alerts
 ```
 
-#### Dark Green
+#### Dark Blue
 ```
-Hex: #004D2E
-RGB: (0, 77, 46)
-HSL: (147°, 100%, 15%)
+Hex: #0D47A1
+RGB: (13, 71, 161)
+HSL: (219°, 85%, 34%)
 Usage: Text, dark accents, navigation elements
 Applications: Headers, main text, navigation bar
 ```
 
-#### Accent Green
+#### Accent Blue
 ```
-Hex: #26A69A
-RGB: (38, 166, 154)
-HSL: (172°, 63%, 40%)
+Hex: #42A5F5
+RGB: (66, 165, 245)
+HSL: (207°, 89%, 61%)
 Usage: Secondary buttons, links, minor accents
 Applications: Secondary CTAs, breadcrumbs, links
 ```
@@ -128,25 +128,25 @@ H1 (Page Title)
 - Font size: 32px
 - Font weight: 700 (Bold)
 - Line height: 1.2
-- Color: #004D2E
+- Color: #0D47A1
 
 H2 (Section Title)
 - Font size: 24px
 - Font weight: 600 (Semibold)
 - Line height: 1.3
-- Color: #004D2E
+- Color: #0D47A1
 
 H3 (Subsection Title)
 - Font size: 20px
 - Font weight: 600 (Semibold)
 - Line height: 1.3
-- Color: #004D2E
+- Color: #0D47A1
 
 H4 (Card Title)
 - Font size: 16px
 - Font weight: 600 (Semibold)
 - Line height: 1.4
-- Color: #004D2E
+- Color: #0D47A1
 
 Body (Regular Text)
 - Font size: 14px
@@ -210,7 +210,7 @@ Full:    50% (for circles, pills)
 │                                        [Profile ▼]     │
 └─────────────────────────────────────────────────────────┘
 
-- Background: #00873E (Primary Green)
+- Background: #1565C0 (Primary Blue)
 - Height: 64px
 - Text: White
 - Fixed positioning: top
@@ -223,7 +223,7 @@ Full:    50% (for circles, pills)
 - Logo in center
 - User profile icon on right
 - Sliding menu on left side
-- Background: #00873E
+- Background: #1565C0
 ```
 
 #### Sidebar Navigation (Admin Dashboard)
@@ -241,9 +241,9 @@ Full:    50% (for circles, pills)
 
 - Width: 256px (desktop), 0px (mobile)
 - Background: #F5F5F5
-- Text: #004D2E
-- Active item background: #E8F5E9
-- Active item border-left: 4px #00873E
+- Text: #0D47A1
+- Active item background: #E3F2FD
+- Active item border-left: 4px #1565C0
 ```
 
 ### Cards
@@ -286,13 +286,13 @@ Full:    50% (for circles, pills)
 │  PAY NOW    │
 └─────────────┘
 
-- Background: #00873E
+- Background: #1565C0
 - Text: White
 - Padding: 12px 32px
 - Border radius: 8px
 - Font weight: 600
-- Hover: #006E33 (darker green)
-- Active: #004D2E
+- Hover: #1255A8 (darker blue)
+- Active: #0D47A1
 - Disabled: #BDBDBD
 - Transition: 200ms ease
 ```
@@ -304,11 +304,11 @@ Full:    50% (for circles, pills)
 └─────────────┘
 
 - Background: Transparent
-- Border: 2px #00873E
-- Text: #00873E
+- Border: 2px #1565C0
+- Text: #1565C0
 - Padding: 12px 32px
 - Border radius: 8px
-- Hover: #E8F5E9 (light green background)
+- Hover: #E3F2FD (light blue background)
 - Active: #F5F5F5
 - Transition: 200ms ease
 ```
@@ -318,9 +318,9 @@ Full:    50% (for circles, pills)
 Cancel  (or Forgot Password?)
 
 - Background: Transparent
-- Text: #26A69A
+- Text: #42A5F5
 - Font weight: 500
-- Hover: Text color: #004D2E
+- Hover: Text color: #0D47A1
 - Underline on hover: Yes
 ```
 
@@ -333,8 +333,8 @@ Cancel  (or Forgot Password?)
 - Size: 40px × 40px
 - Background: Transparent
 - Border radius: 50%
-- Hover background: #E8F5E9
-- Icon color: #00873E
+- Hover background: #E3F2FD
+- Icon color: #1565C0
 ```
 
 ### Forms & Inputs
@@ -351,7 +351,7 @@ Label *
 - Border: 1px #BDBDBD
 - Border radius: 4px
 - Font size: 14px
-- Focus: Border color #00873E, box-shadow: 0 0 0 3px #E8F5E9
+- Focus: Border color #1565C0, box-shadow: 0 0 0 3px #E3F2FD
 - Error: Border color #F44336
 - Disabled: Background #F5F5F5, color #BDBDBD
 ```
@@ -364,10 +364,10 @@ Label *
 └─────────────────────────────┘
 
 - Same styling as text input
-- Dropdown arrow: #00873E
+- Dropdown arrow: #1565C0
 - Options background: #F5F5F5
-- Hover option background: #E8F5E9
-- Selected option: Background #00873E, text white
+- Hover option background: #E3F2FD
+- Selected option: Background #1565C0, text white
 ```
 
 #### Checkbox
@@ -376,10 +376,10 @@ Label *
 
 - Size: 20px × 20px
 - Border: 2px #BDBDBD
-- Checked: Background #00873E, checkmark white
+- Checked: Background #1565C0, checkmark white
 - Border radius: 4px
 - Cursor: pointer
-- Focus: Box shadow 0 0 0 3px #E8F5E9
+- Focus: Box shadow 0 0 0 3px #E3F2FD
 ```
 
 #### Radio Button
@@ -389,7 +389,7 @@ Label *
 
 - Size: 20px diameter
 - Border: 2px #BDBDBD
-- Inner circle (selected): 8px diameter, #00873E
+- Inner circle (selected): 8px diameter, #1565C0
 - Border radius: 50%
 - Spacing between: 12px
 ```
@@ -403,7 +403,7 @@ Off                      On
 
 - Width: 48px, Height: 24px
 - Background (off): #BDBDBD
-- Background (on): #00873E
+- Background (on): #1565C0
 - Circle: 20px, white, position animated
 - Border radius: 12px (pill shape)
 - Transition: 300ms ease
@@ -433,10 +433,10 @@ Notes or Description
 │ ✓ Payment successful! Receipt sent via SMS  │
 └─────────────────────────────────────────────┘
 
-- Background: #E8F5E9
+- Background: #E3F2FD
 - Border-left: 4px #4CAF50
 - Icon: ✓ (green #4CAF50)
-- Text: #004D2E
+- Text: #0D47A1
 - Padding: 16px
 - Border radius: 4px
 - Close button: X
@@ -496,13 +496,13 @@ Notes or Description
 │ 2026-06-15│ 4200  │ ⚠ OVERDUE │ Pay Now│
 └─────────────────────────────────────────────┘
 
-- Header background: #004D2E
+- Header background: #0D47A1
 - Header text: White
 - Alternate row backgrounds: #F5F5F5, White
 - Border: 1px #BDBDBD
 - Padding: 16px (cells)
 - Font size: 14px
-- Hover row: #E8F5E9
+- Hover row: #E3F2FD
 - Sortable columns: Indicator arrow (▲▼) in header
 - Status icons: Color-coded (✓ green, ⏳ yellow, ⚠ red)
 ```
@@ -516,7 +516,7 @@ PAID          PENDING        OVERDUE       CANCELLED
 │ ✓    │     │ ⏳   │     │ ⚠    │     │ ✗    │
 └──────┘     └──────┘     └──────┘     └──────┘
 
-Success:   Background #E8F5E9, Text #004D2E, Icon #4CAF50
+Success:   Background #E3F2FD, Text #0D47A1, Icon #4CAF50
 Pending:   Background #FFF8E1, Text #F57F17, Icon #FFC107
 Overdue:   Background #FFEBEE, Text #C62828, Icon #F44336
 Cancelled: Background #F5F5F5, Text #757575, Icon #BDBDBD
@@ -588,7 +588,7 @@ Cancelled: Background #F5F5F5, Text #757575, Icon #BDBDBD
 
 - Background: White
 - Form container: Centered, max-width 400px
-- Colors: Primary green buttons, dark text
+- Colors: Primary blue buttons, dark text
 ```
 
 ### Dashboard Page
@@ -759,7 +759,7 @@ Large:     1921px+
 ### Dark Mode Colors
 - Background: #121212
 - Surface: #1E1E1E
-- Primary Green: #66BB6A
+- Primary Blue: #66BB6A
 - Text: #FFFFFF
 
 ---
@@ -786,10 +786,10 @@ Large:     1921px+
 
 **Figma/Adobe XD Variables:**
 ```
-Primary Green:    #00873E
-Light Green:      #E8F5E9
-Dark Green:       #004D2E
-Accent Green:     #26A69A
+Primary Blue:    #1565C0
+Light Blue:      #E3F2FD
+Dark Blue:       #0D47A1
+Accent Blue:     #42A5F5
 Light Gray:       #F5F5F5
 Medium Gray:      #BDBDBD
 Dark Gray:        #424242
@@ -803,7 +803,7 @@ Info:             #2196F3
 
 ## ✅ Design Checklist
 
-- [ ] All elements use green color palette
+- [ ] All elements use blue color palette
 - [ ] Consistent typography hierarchy
 - [ ] Proper spacing (8px grid system)
 - [ ] Accessible color contrast (4.5:1)

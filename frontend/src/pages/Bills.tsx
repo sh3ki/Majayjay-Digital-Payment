@@ -55,7 +55,7 @@ const Bills: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#004D2E">Bills</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">Bills</Typography>
           <Typography variant="body2" color="text.secondary">
             Manage and track all payment bills
           </Typography>
@@ -98,7 +98,7 @@ const Bills: React.FC = () => {
 
           {loading ? (
             <Box display="flex" justifyContent="center" p={4}>
-              <CircularProgress sx={{ color: '#00873E' }} />
+              <CircularProgress sx={{ color: '#1565C0' }} />
             </Box>
           ) : (
             <>

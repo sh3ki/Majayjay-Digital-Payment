@@ -45,7 +45,7 @@ const Payments: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#004D2E">Payments</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">Payments</Typography>
           <Typography variant="body2" color="text.secondary">View all payment transactions</Typography>
         </Box>
       </Box>
@@ -69,7 +69,7 @@ const Payments: React.FC = () => {
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           {loading ? (
-            <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#00873E' }} /></Box>
+            <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
           ) : (
             <>
               <Box sx={{ overflowX: 'auto' }}>
@@ -104,7 +104,7 @@ const Payments: React.FC = () => {
                         </TableCell>
                         <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{(p.bill as { billNumber?: string })?.billNumber || 'N/A'}</TableCell>
                         <TableCell>{(p.method as { methodName?: string })?.methodName}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, color: '#00873E' }}>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: '#1565C0' }}>
                           {formatCurrency(parseFloat(String(p.amount)))}
                         </TableCell>
                         <TableCell align="center"><StatusBadge status={p.status} /></TableCell>

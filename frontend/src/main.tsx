@@ -13,13 +13,13 @@ import './index.css';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#00873E',
-      light: '#E8F5E9',
-      dark: '#004D2E',
+      main: '#1565C0',
+      light: '#E3F2FD',
+      dark: '#0D47A1',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#26A69A',
+      main: '#42A5F5',
     },
     success: { main: '#4CAF50' },
     warning: { main: '#FFC107' },
@@ -29,10 +29,10 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: 'Inter, Segoe UI, Roboto, sans-serif',
-    h1: { fontWeight: 700, color: '#004D2E' },
-    h2: { fontWeight: 600, color: '#004D2E' },
-    h3: { fontWeight: 600, color: '#004D2E' },
-    h4: { fontWeight: 600, color: '#004D2E' },
+    h1: { fontWeight: 700, color: '#0D47A1' },
+    h2: { fontWeight: 600, color: '#0D47A1' },
+    h3: { fontWeight: 600, color: '#0D47A1' },
+    h4: { fontWeight: 600, color: '#0D47A1' },
     body1: { color: '#424242' },
     body2: { color: '#424242' },
   },
@@ -42,7 +42,7 @@ const theme = createTheme({
       styleOverrides: {
         root: { textTransform: 'none', fontWeight: 600, borderRadius: 8 },
         containedPrimary: {
-          '&:hover': { backgroundColor: '#006E33' },
+          '&:hover': { backgroundColor: '#1255A8' },
         },
       },
     },
@@ -56,14 +56,14 @@ const theme = createTheme({
     },
     MuiAppBar: {
       styleOverrides: {
-        root: { backgroundColor: '#00873E' },
+        root: { backgroundColor: '#1565C0' },
       },
     },
     MuiTableHead: {
       styleOverrides: {
         root: {
           '& .MuiTableCell-head': {
-            backgroundColor: '#004D2E',
+            backgroundColor: '#0D47A1',
             color: '#ffffff',
             fontWeight: 600,
           },
@@ -74,7 +74,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '&:nth-of-type(even)': { backgroundColor: '#F5F5F5' },
-          '&:hover': { backgroundColor: '#E8F5E9' },
+          '&:hover': { backgroundColor: '#E3F2FD' },
         },
       },
     },

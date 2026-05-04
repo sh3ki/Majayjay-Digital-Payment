@@ -8,7 +8,7 @@ import { reportsService } from '../services/reports.service';
 import { CollectionReport, PaymentMethodBreakdown } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 
-const COLORS = ['#00873E', '#26A69A', '#2196F3', '#FFC107'];
+const COLORS = ['#1565C0', '#42A5F5', '#2196F3', '#FFC107'];
 
 const Reports: React.FC = () => {
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
@@ -39,7 +39,7 @@ const Reports: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} color="#004D2E" mb={1}>Reports & Analytics</Typography>
+      <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>Reports & Analytics</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>Collection reports and revenue analysis</Typography>
 
       {/* Filters */}
@@ -68,10 +68,10 @@ const Reports: React.FC = () => {
           {/* Summary Cards */}
           <Grid container spacing={3} mb={3}>
             <Grid item xs={12} sm={4}>
-              <Card sx={{ background: '#E8F5E9' }}>
+              <Card sx={{ background: '#E3F2FD' }}>
                 <CardContent>
                   <Typography variant="body2" color="text.secondary">Total Collected</Typography>
-                  <Typography variant="h4" fontWeight={700} color="#004D2E">
+                  <Typography variant="h4" fontWeight={700} color="#0D47A1">
                     {formatCurrency(report.summary.total)}
                   </Typography>
                 </CardContent>
@@ -81,7 +81,7 @@ const Reports: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="body2" color="text.secondary">Total Transactions</Typography>
-                  <Typography variant="h4" fontWeight={700} color="#00873E">{report.summary.count}</Typography>
+                  <Typography variant="h4" fontWeight={700} color="#1565C0">{report.summary.count}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -89,7 +89,7 @@ const Reports: React.FC = () => {
               <Card>
                 <CardContent>
                   <Typography variant="body2" color="text.secondary">Avg. per Transaction</Typography>
-                  <Typography variant="h4" fontWeight={700} color="#26A69A">
+                  <Typography variant="h4" fontWeight={700} color="#42A5F5">
                     {formatCurrency(report.summary.count > 0 ? report.summary.total / report.summary.count : 0)}
                   </Typography>
                 </CardContent>
@@ -102,14 +102,14 @@ const Reports: React.FC = () => {
             <Grid item xs={12} md={8}>
               <Card>
                 <CardContent>
-                  <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Revenue by Payment Method</Typography>
+                  <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Revenue by Payment Method</Typography>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={report.summary.byMethod}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="method" />
                       <YAxis tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
                       <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                      <Bar dataKey="total" fill="#00873E" radius={[4, 4, 0, 0]} name="Total Collected" />
+                      <Bar dataKey="total" fill="#1565C0" radius={[4, 4, 0, 0]} name="Total Collected" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -120,7 +120,7 @@ const Reports: React.FC = () => {
             <Grid item xs={12} md={4}>
               <Card>
                 <CardContent>
-                  <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Distribution</Typography>
+                  <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Distribution</Typography>
                   {methodBreakdown.length > 0 ? (
                     <ResponsiveContainer width="100%" height={220}>
                       <PieChart>
@@ -147,7 +147,7 @@ const Reports: React.FC = () => {
           <Card>
             <CardContent>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6" fontWeight={600} color="#004D2E">
+                <Typography variant="h6" fontWeight={600} color="#0D47A1">
                   Transaction Details ({report.payments.length} records)
                 </Typography>
               </Box>
@@ -171,7 +171,7 @@ const Reports: React.FC = () => {
                         <TableCell>{(p.payer as { firstName?: string; lastName?: string })?.firstName} {(p.payer as { firstName?: string; lastName?: string })?.lastName}</TableCell>
                         <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{(p.receipt as { orNumber?: string })?.orNumber || '-'}</TableCell>
                         <TableCell>{(p.method as { methodName?: string })?.methodName}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 600, color: '#00873E' }}>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: '#1565C0' }}>
                           {formatCurrency(parseFloat(String(p.amount)))}
                         </TableCell>
                       </TableRow>

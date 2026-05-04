@@ -15,7 +15,7 @@ This repository contains comprehensive documentation and setup files for buildin
 | [project-overview.md](project-overview.md) | High-level project summary, objectives, and scope |
 | [project-architecture.md](project-architecture.md) | Technical architecture and system design |
 | [project-full-details.md](project-full-details.md) | Comprehensive feature specifications and workflows |
-| [design-specifications.md](design-specifications.md) | UI/UX design specs with green color palette |
+| [design-specifications.md](design-specifications.md) | UI/UX design specs with blue color palette |
 | [tech-stack.md](tech-stack.md) | Detailed technology stack and packages |
 | [database-schema.md](database-schema.md) | Complete database structure and Prisma schema |
 | [initial.md](initial.md) | Original system scope and requirements |
@@ -236,12 +236,12 @@ npm run dev
 
 ## 🎨 Design System
 
-### Color Palette (Green Theme)
+### Color Palette (Blue Theme)
 
-- **Primary Green**: `#00873E`
-- **Light Green**: `#E8F5E9`
-- **Dark Green**: `#004D2E`
-- **Accent Green**: `#26A69A`
+- **Primary Blue**: `#1565C0`
+- **Light Blue**: `#E3F2FD`
+- **Dark Blue**: `#0D47A1`
+- **Accent Blue**: `#42A5F5`
 
 ### Status Colors
 
@@ -594,7 +594,7 @@ npx prisma studio     # Opens Prisma Studio GUI
 
 ## 📌 Important Notes
 
-1. **Green Color Palette**: All UI designs must use the green theme as specified in design-specifications.md
+1. **Blue Color Palette**: All UI designs must use the blue theme as specified in design-specifications.md
 2. **PayMongo Integration**: API keys required - get from PayMongo dashboard
 3. **NeonDB Setup**: Database URL must be configured before running migrations
 4. **Environment Variables**: Never commit .env files - use .env.example

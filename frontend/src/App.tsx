@@ -8,6 +8,7 @@ import Layout from './components/common/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
+import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Register from './pages/Register';
@@ -47,6 +48,7 @@ const App: React.FC = () => {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/auth-callback" element={<AuthCallback />} />
       <Route path="/register" element={<Register />} />

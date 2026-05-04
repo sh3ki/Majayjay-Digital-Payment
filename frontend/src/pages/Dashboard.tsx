@@ -15,7 +15,7 @@ import { DashboardKPIs, MonthlyRevenue, PaymentMethodBreakdown } from '../types'
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
 
-const COLORS = ['#00873E', '#26A69A', '#2196F3', '#FFC107'];
+const COLORS = ['#1565C0', '#42A5F5', '#2196F3', '#FFC107'];
 
 const KPICard: React.FC<{
   title: string;
@@ -24,7 +24,7 @@ const KPICard: React.FC<{
   trend?: number;
   icon: React.ReactNode;
   color?: string;
-}> = ({ title, value, subtitle, trend, icon, color = '#00873E' }) => (
+}> = ({ title, value, subtitle, trend, icon, color = '#1565C0' }) => (
   <Card sx={{ height: '100%' }}>
     <CardContent>
       <Box display="flex" justifyContent="space-between" alignItems="flex-start">
@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
-        <CircularProgress sx={{ color: '#00873E' }} />
+        <CircularProgress sx={{ color: '#1565C0' }} />
       </Box>
     );
   }
@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} color="#004D2E" mb={1}>Dashboard</Typography>
+      <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>Dashboard</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
         Real-time overview of payment collections and revenue
       </Typography>
@@ -136,7 +136,7 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>
+              <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>
                 Annual Revenue Trend ({new Date().getFullYear()})
               </Typography>
               <ResponsiveContainer width="100%" height={280}>
@@ -145,7 +145,7 @@ const Dashboard: React.FC = () => {
                   <XAxis dataKey="monthName" tick={{ fontSize: 12 }} tickFormatter={(v) => v.slice(0, 3)} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Line type="monotone" dataKey="total" stroke="#00873E" strokeWidth={2.5} dot={{ fill: '#00873E', r: 4 }} name="Revenue" />
+                  <Line type="monotone" dataKey="total" stroke="#1565C0" strokeWidth={2.5} dot={{ fill: '#1565C0', r: 4 }} name="Revenue" />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -156,7 +156,7 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12} md={4}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>
+              <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>
                 Payment Methods
               </Typography>
               {methodBreakdown.length > 0 ? (
@@ -186,7 +186,7 @@ const Dashboard: React.FC = () => {
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>
+              <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>
                 Monthly Collection Count
               </Typography>
               <ResponsiveContainer width="100%" height={220}>
@@ -195,7 +195,7 @@ const Dashboard: React.FC = () => {
                   <XAxis dataKey="monthName" tick={{ fontSize: 12 }} tickFormatter={(v) => v.slice(0, 3)} />
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#26A69A" radius={[4, 4, 0, 0]} name="Transactions" />
+                  <Bar dataKey="count" fill="#42A5F5" radius={[4, 4, 0, 0]} name="Transactions" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -206,13 +206,13 @@ const Dashboard: React.FC = () => {
       {/* Recent Transactions */}
       <Card>
         <CardContent>
-          <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>
+          <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>
             Recent Transactions
           </Typography>
           <Box sx={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
-                <tr style={{ background: '#004D2E', color: 'white' }}>
+                <tr style={{ background: '#0D47A1', color: 'white' }}>
                   <th style={{ padding: '12px 16px', textAlign: 'left' }}>Transaction ID</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left' }}>Payer</th>
                   <th style={{ padding: '12px 16px', textAlign: 'left' }}>Method</th>
@@ -229,7 +229,7 @@ const Dashboard: React.FC = () => {
                       {(txn.payer as { firstName?: string; lastName?: string })?.firstName} {(txn.payer as { firstName?: string; lastName?: string })?.lastName}
                     </td>
                     <td style={{ padding: '10px 16px' }}>{(txn.method as { methodName?: string })?.methodName}</td>
-                    <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#00873E' }}>
+                    <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#1565C0' }}>
                       {formatCurrency(parseFloat(String(txn.amount)))}
                     </td>
                     <td style={{ padding: '10px 16px', textAlign: 'center' }}>

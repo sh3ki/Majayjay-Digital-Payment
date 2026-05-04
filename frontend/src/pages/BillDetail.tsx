@@ -74,7 +74,7 @@ const BillDetail: React.FC = () => {
     }
   };
 
-  if (loading) return <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#00873E' }} /></Box>;
+  if (loading) return <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>;
   if (error && !bill) return <Alert severity="error">{error}</Alert>;
   if (!bill) return <Alert severity="error">Bill not found</Alert>;
 
@@ -86,7 +86,7 @@ const BillDetail: React.FC = () => {
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/bills')} variant="outlined" size="small">
           Back
         </Button>
-        <Typography variant="h5" fontWeight={700} color="#004D2E">
+        <Typography variant="h5" fontWeight={700} color="#0D47A1">
           Bill Details
         </Typography>
       </Box>
@@ -169,7 +169,7 @@ const BillDetail: React.FC = () => {
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Payment Summary</Typography>
+              <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Payment Summary</Typography>
 
               <Box display="flex" justifyContent="space-between" mb={1}>
                 <Typography color="text.secondary">Subtotal</Typography>
@@ -230,7 +230,7 @@ const BillDetail: React.FC = () => {
           {bill.payments && bill.payments.length > 0 && (
             <Card sx={{ mt: 2 }}>
               <CardContent>
-                <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Payment History</Typography>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Payment History</Typography>
                 {bill.payments.map((payment) => (
                   <Box key={payment.id} display="flex" justifyContent="space-between" py={1} borderBottom="1px solid #f0f0f0">
                     <Box>

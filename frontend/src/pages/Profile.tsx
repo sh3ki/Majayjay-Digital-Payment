@@ -40,7 +40,7 @@ const Profile: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} color="#004D2E" mb={1}>My Profile</Typography>
+      <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>My Profile</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>View your account information and change password</Typography>
 
       <Grid container spacing={3}>
@@ -48,7 +48,7 @@ const Profile: React.FC = () => {
           <Card>
             <CardContent>
               <Box display="flex" flexDirection="column" alignItems="center" py={2}>
-                <Avatar sx={{ width: 80, height: 80, bgcolor: '#00873E', fontSize: 32, mb: 2 }}>
+                <Avatar sx={{ width: 80, height: 80, bgcolor: '#1565C0', fontSize: 32, mb: 2 }}>
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </Avatar>
                 <Typography variant="h6" fontWeight={700}>{user?.firstName} {user?.lastName}</Typography>
@@ -62,7 +62,7 @@ const Profile: React.FC = () => {
               </Box>
               <Box mt={1.5}>
                 <Typography variant="body2" color="text.secondary">Status</Typography>
-                <Typography fontWeight={600} color="#00873E">{user?.status}</Typography>
+                <Typography fontWeight={600} color="#1565C0">{user?.status}</Typography>
               </Box>
             </CardContent>
           </Card>
@@ -71,7 +71,7 @@ const Profile: React.FC = () => {
         <Grid item xs={12} md={7}>
           <Card>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Change Password</Typography>
+              <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Change Password</Typography>
               <Box component="form" onSubmit={handleChangePassword}>
                 {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
                 {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

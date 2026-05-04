@@ -57,7 +57,7 @@ const Sidebar: React.FC<Props> = ({ open, onClose, variant = 'permanent' }) => {
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Logo */}
-      <Box sx={{ p: 3, background: '#004D2E', color: 'white', textAlign: 'center' }}>
+      <Box sx={{ p: 3, background: '#0D47A1', color: 'white', textAlign: 'center' }}>
         <Typography variant="h6" fontWeight={700} fontSize={14}>
           Majayjay Digital
         </Typography>
@@ -68,12 +68,12 @@ const Sidebar: React.FC<Props> = ({ open, onClose, variant = 'permanent' }) => {
 
       {/* User info */}
       {user && (
-        <Box sx={{ p: 2, background: '#E8F5E9', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar sx={{ bgcolor: '#00873E', width: 36, height: 36, fontSize: 14 }}>
+        <Box sx={{ p: 2, background: '#E3F2FD', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar sx={{ bgcolor: '#1565C0', width: 36, height: 36, fontSize: 14 }}>
             {user.firstName[0]}{user.lastName[0]}
           </Avatar>
           <Box>
-            <Typography variant="body2" fontWeight={600} color="#004D2E" fontSize={13}>
+            <Typography variant="body2" fontWeight={600} color="#0D47A1" fontSize={13}>
               {user.firstName} {user.lastName}
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
@@ -95,13 +95,13 @@ const Sidebar: React.FC<Props> = ({ open, onClose, variant = 'permanent' }) => {
                 onClick={() => handleNav(item.path)}
                 sx={{
                   mx: 1, borderRadius: 1, mb: 0.5,
-                  backgroundColor: isActive ? '#E8F5E9' : 'transparent',
-                  borderLeft: isActive ? '4px solid #00873E' : '4px solid transparent',
-                  '&:hover': { backgroundColor: '#E8F5E9' },
-                  color: isActive ? '#004D2E' : '#424242',
+                  backgroundColor: isActive ? '#E3F2FD' : 'transparent',
+                  borderLeft: isActive ? '4px solid #1565C0' : '4px solid transparent',
+                  '&:hover': { backgroundColor: '#E3F2FD' },
+                  color: isActive ? '#0D47A1' : '#424242',
                 }}
               >
-                <ListItemIcon sx={{ color: isActive ? '#00873E' : '#757575', minWidth: 40 }}>
+                <ListItemIcon sx={{ color: isActive ? '#1565C0' : '#757575', minWidth: 40 }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText

@@ -1901,12 +1901,12 @@ PUT /api/v1/admin/penalty-rules/:id
 
 ---
 
-## 🎨 Color Palette (Green Theme)
+## 🎨 Color Palette (Blue Theme)
 
 ### Primary Colors
-- **Primary Green**: #00873E (Professional, trustworthy)
-- **Light Green**: #E8F5E9 (Backgrounds)
-- **Dark Green**: #004D2E (Text, accents)
+- **Primary Blue**: #1565C0 (Professional, trustworthy)
+- **Light Blue**: #E3F2FD (Backgrounds)
+- **Dark Blue**: #0D47A1 (Text, accents)
 
 ### Secondary Colors
 - **Light Gray**: #F5F5F5 (Backgrounds)
@@ -1941,7 +1941,7 @@ PUT /api/v1/admin/penalty-rules/:id
 ✅ Admin controls
 
 ### Design Features
-✅ Green color palette (professional theme)
+✅ Blue color palette (professional theme)
 ✅ Modern, minimalist interface
 ✅ Responsive design (mobile-first)
 ✅ Accessibility compliance

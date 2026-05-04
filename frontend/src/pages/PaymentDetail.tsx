@@ -24,7 +24,7 @@ const PaymentDetail: React.FC = () => {
     }).catch(() => setError('Failed to load payment')).finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <Box display="flex" justifyContent="center" p={8}><CircularProgress sx={{ color: '#00873E' }} /></Box>;
+  if (loading) return <Box display="flex" justifyContent="center" p={8}><CircularProgress sx={{ color: '#1565C0' }} /></Box>;
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!payment) return null;
 
@@ -45,7 +45,7 @@ const PaymentDetail: React.FC = () => {
           <Card>
             <CardContent>
               <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                <Typography variant="h6" fontWeight={700} color="#004D2E">Payment Details</Typography>
+                <Typography variant="h6" fontWeight={700} color="#0D47A1">Payment Details</Typography>
                 <StatusBadge status={payment.status} />
               </Box>
 
@@ -90,7 +90,7 @@ const PaymentDetail: React.FC = () => {
 
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6" fontWeight={700}>Amount Paid</Typography>
-                <Typography variant="h4" fontWeight={700} color="#00873E">
+                <Typography variant="h4" fontWeight={700} color="#1565C0">
                   {formatCurrency(parseFloat(String(payment.amount)))}
                 </Typography>
               </Box>
@@ -100,12 +100,12 @@ const PaymentDetail: React.FC = () => {
 
         <Grid item xs={12} md={5}>
           {receipt && (
-            <Card sx={{ background: '#E8F5E9' }}>
+            <Card sx={{ background: '#E3F2FD' }}>
               <CardContent>
-                <Typography variant="h6" fontWeight={700} color="#004D2E" mb={2}>Official Receipt</Typography>
+                <Typography variant="h6" fontWeight={700} color="#0D47A1" mb={2}>Official Receipt</Typography>
                 <Box mb={1}>
                   <Typography variant="caption" color="text.secondary">OR Number</Typography>
-                  <Typography fontWeight={700} fontSize={20} fontFamily="monospace" color="#004D2E">
+                  <Typography fontWeight={700} fontSize={20} fontFamily="monospace" color="#0D47A1">
                     {receipt.orNumber}
                   </Typography>
                 </Box>

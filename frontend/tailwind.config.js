@@ -5,16 +5,16 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#00873E',
-          light: '#E8F5E9',
-          dark: '#004D2E',
-          accent: '#26A69A',
-          50: '#E8F5E9',
-          100: '#C8E6C9',
-          500: '#00873E',
-          600: '#006E33',
-          700: '#004D2E',
-          900: '#002D1A',
+          DEFAULT: '#1565C0',
+          light: '#E3F2FD',
+          dark: '#0D47A1',
+          accent: '#42A5F5',
+          50: '#E3F2FD',
+          100: '#BBDEFB',
+          500: '#1565C0',
+          600: '#1255A8',
+          700: '#0D47A1',
+          900: '#0A2F6E',
         },
       },
       fontFamily: {

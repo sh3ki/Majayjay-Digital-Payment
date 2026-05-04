@@ -9,7 +9,7 @@ interface Props {
 const LoadingSpinner: React.FC<Props> = ({ message = 'Loading...', fullPage = false }) => {
   const content = (
     <Box display="flex" flexDirection="column" alignItems="center" gap={2} p={4}>
-      <CircularProgress sx={{ color: '#00873E' }} />
+      <CircularProgress sx={{ color: '#1565C0' }} />
       <Typography color="text.secondary">{message}</Typography>
     </Box>
   );

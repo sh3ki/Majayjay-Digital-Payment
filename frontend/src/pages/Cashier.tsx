@@ -96,7 +96,7 @@ const Cashier: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} color="#004D2E" mb={1}>Cashier Terminal</Typography>
+      <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>Cashier Terminal</Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
         Search for payer bills and record cash payments
       </Typography>
@@ -109,7 +109,7 @@ const Cashier: React.FC = () => {
         <Grid item xs={12} md={selectedBill ? 5 : 12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Search Payer / Bill</Typography>
+              <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Search Payer / Bill</Typography>
               <Box display="flex" gap={1}>
                 <TextField
                   fullWidth
@@ -141,9 +141,9 @@ const Cashier: React.FC = () => {
                         border: '1px solid #BDBDBD',
                         borderRadius: 1,
                         cursor: 'pointer',
-                        '&:hover': { background: '#E8F5E9', borderColor: '#00873E' },
-                        background: selectedBill?.id === bill.id ? '#E8F5E9' : 'white',
-                        borderColor: selectedBill?.id === bill.id ? '#00873E' : '#BDBDBD',
+                        '&:hover': { background: '#E3F2FD', borderColor: '#1565C0' },
+                        background: selectedBill?.id === bill.id ? '#E3F2FD' : 'white',
+                        borderColor: selectedBill?.id === bill.id ? '#1565C0' : '#BDBDBD',
                       }}
                       onClick={() => handleSelectBill(bill)}
                     >
@@ -176,9 +176,9 @@ const Cashier: React.FC = () => {
           <Grid item xs={12} md={7}>
             <Card>
               <CardContent>
-                <Typography variant="h6" fontWeight={600} color="#004D2E" mb={2}>Payment Processing</Typography>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Payment Processing</Typography>
 
-                <Box sx={{ background: '#E8F5E9', borderRadius: 1, p: 2, mb: 2 }}>
+                <Box sx={{ background: '#E3F2FD', borderRadius: 1, p: 2, mb: 2 }}>
                   <Typography variant="body2" color="text.secondary">Payer</Typography>
                   <Typography fontWeight={700} fontSize={18}>
                     {selectedBill.payer?.firstName} {selectedBill.payer?.lastName}

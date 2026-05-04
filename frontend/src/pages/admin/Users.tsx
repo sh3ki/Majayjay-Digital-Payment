@@ -74,7 +74,7 @@ const Users: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#004D2E">User Management</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">User Management</Typography>
           <Typography variant="body2" color="text.secondary">Manage system users and roles</Typography>
         </Box>
         <Button variant="contained" startIcon={<Add />} onClick={() => setCreateOpen(true)}>
@@ -96,7 +96,7 @@ const Users: React.FC = () => {
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           {loading ? (
-            <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#00873E' }} /></Box>
+            <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
           ) : (
             <>
               <Box sx={{ overflowX: 'auto' }}>

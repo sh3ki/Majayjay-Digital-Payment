@@ -83,7 +83,7 @@ const AuthCallback: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #004D2E 0%, #00873E 100%)',
+        background: 'linear-gradient(135deg, #0D47A1 0%, #1565C0 100%)',
         p: 2,
       }}
     >

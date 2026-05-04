@@ -46,7 +46,7 @@ const Navbar: React.FC<Props> = ({ onMenuToggle }) => {
           </IconButton>
 
           <IconButton onClick={handleMenu} size="small">
-            <Avatar sx={{ width: 32, height: 32, bgcolor: '#004D2E', fontSize: 13 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: '#0D47A1', fontSize: 13 }}>
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </Avatar>
           </IconButton>

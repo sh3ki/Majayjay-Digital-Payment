@@ -25,10 +25,10 @@ const ForgotPassword: React.FC = () => {
 
   return (
     <Box minHeight="100vh" display="flex" alignItems="center" justifyContent="center"
-      sx={{ background: 'linear-gradient(135deg, #004D2E 0%, #00873E 100%)' }}>
+      sx={{ background: 'linear-gradient(135deg, #0D47A1 0%, #1565C0 100%)' }}>
       <Card sx={{ width: '100%', maxWidth: 420, mx: 2 }}>
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h5" fontWeight={700} color="#004D2E" mb={1}>Reset Password</Typography>
+          <Typography variant="h5" fontWeight={700} color="#0D47A1" mb={1}>Reset Password</Typography>
           <Typography variant="body2" color="text.secondary" mb={3}>
             Enter your email and we'll send a reset link.
           </Typography>
@@ -52,7 +52,7 @@ const ForgotPassword: React.FC = () => {
           )}
 
           <Box mt={3} textAlign="center">
-            <Link component={RouterLink} to="/login" color="#00873E">Back to Login</Link>
+            <Link component={RouterLink} to="/login" color="#1565C0">Back to Login</Link>
           </Box>
         </CardContent>
       </Card>

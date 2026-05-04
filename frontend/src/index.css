@@ -16,10 +16,10 @@ body {
 }
 
 :root {
-  --primary: #00873e;
-  --primary-light: #e8f5e9;
-  --primary-dark: #004d2e;
-  --primary-accent: #26a69a;
+  --primary: #1565c0;
+  --primary-light: #e3f2fd;
+  --primary-dark: #0d47a1;
+  --primary-accent: #42a5f5;
   --success: #4caf50;
   --warning: #ffc107;
   --error: #f44336;
@@ -36,7 +36,7 @@ body {
   font-weight: 600;
 }
 
-.badge-paid { background: #E8F5E9; color: #004D2E; }
+.badge-paid { background: #E3F2FD; color: #0D47A1; }
 .badge-unpaid { background: #FFF8E1; color: #F57F17; }
 .badge-overdue { background: #FFEBEE; color: #C62828; }
 .badge-pending { background: #E3F2FD; color: #0D47A1; }
