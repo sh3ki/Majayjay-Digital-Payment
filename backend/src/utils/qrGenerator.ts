@@ -11,8 +11,8 @@ export interface QRPaymentData {
   paymentUrl: string;
 }
 
-export async function generateQRCode(data: QRPaymentData): Promise<string> {
-  const encoded = JSON.stringify(data);
+export async function generateQRCode(data: QRPaymentData | string): Promise<string> {
+  const encoded = typeof data === 'string' ? data : JSON.stringify(data);
   return QRCode.toDataURL(encoded, {
     errorCorrectionLevel: 'H',
     margin: 1,
@@ -21,8 +21,8 @@ export async function generateQRCode(data: QRPaymentData): Promise<string> {
   });
 }
 
-export async function generateQRCodeBuffer(data: QRPaymentData): Promise<Buffer> {
-  const encoded = JSON.stringify(data);
+export async function generateQRCodeBuffer(data: QRPaymentData | string): Promise<Buffer> {
+  const encoded = typeof data === 'string' ? data : JSON.stringify(data);
   return QRCode.toBuffer(encoded, {
     errorCorrectionLevel: 'H',
     margin: 1,
