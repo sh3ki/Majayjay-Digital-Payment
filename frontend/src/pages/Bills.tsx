@@ -15,7 +15,7 @@ import { useAuth } from '../hooks/useAuth';
 const STATUS_OPTIONS = ['', 'DRAFT', 'ISSUED', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
 
 const Bills: React.FC = () => {
-  const { isAdmin, isCashier } = useAuth();
+  const { isAdmin, isCashier, isResident } = useAuth();
   const navigate = useNavigate();
   const [bills, setBills] = useState<Bill[]>([]);
   const [total, setTotal] = useState(0);
@@ -55,9 +55,9 @@ const Bills: React.FC = () => {
     <Box>
       <Box className="page-header">
         <Box>
-          <Typography variant="h4" fontWeight={700} color="#0D47A1">Bills</Typography>
+          <Typography variant="h4" fontWeight={700} color="#0D47A1">{isResident ? 'My Bills' : 'Bills'}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage and track all payment bills
+            {isResident ? 'View and pay your outstanding bills' : 'Manage and track all payment bills'}
           </Typography>
         </Box>
         {(isAdmin || isCashier) && (
@@ -107,7 +107,7 @@ const Bills: React.FC = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell>Bill No.</TableCell>
-                      <TableCell>Payer</TableCell>
+                      {!isResident && <TableCell>Payer</TableCell>}
                       <TableCell>Bill Date</TableCell>
                       <TableCell>Due Date</TableCell>
                       <TableCell align="right">Total</TableCell>
@@ -119,7 +119,7 @@ const Bills: React.FC = () => {
                   <TableBody>
                     {bills.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} align="center" sx={{ py: 4, color: '#757575' }}>
+                        <TableCell colSpan={isResident ? 7 : 8} align="center" sx={{ py: 4, color: '#757575' }}>
                           No bills found
                         </TableCell>
                       </TableRow>
@@ -130,14 +130,16 @@ const Bills: React.FC = () => {
                             {bill.billNumber}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
-                            {bill.payer?.firstName} {bill.payer?.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {bill.payer?.email}
-                          </Typography>
-                        </TableCell>
+                        {!isResident && (
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={500}>
+                              {bill.payer?.firstName} {bill.payer?.lastName}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {bill.payer?.email}
+                            </Typography>
+                          </TableCell>
+                        )}
                         <TableCell>{formatShortDate(bill.billDate)}</TableCell>
                         <TableCell>
                           {formatShortDate(bill.dueDate)}
