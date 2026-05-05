@@ -202,6 +202,23 @@ CREATE TABLE departments (
 );
 ```
 
+**Departments** (15 total):
+1. Municipal Waterworks District (MWD)
+2. LAGECO / Electric Cooperative
+3. Municipal Treasurer's Office (MTO)
+4. Business Permits and Licensing Office (BPLO)
+5. Municipal Engineering Office / MPDO
+6. Local Civil Registry Office (LCRO)
+7. Municipal Tourism Office
+8. Mayor's Office
+9. Barangay Halls (40 Barangays of Majayjay)
+10. Schools Division / MSWD
+11. Municipal Health Office (MHO)
+12. Municipal Market Administration
+13. Municipal Environment and Natural Resources Office (MENRO)
+14. Municipal Agriculturist Office
+15. Municipal Impounding Area
+
 ---
 
 ### 5. fee_categories
@@ -219,13 +236,29 @@ CREATE TABLE fee_categories (
 );
 ```
 
-**Categories**:
-- Real Property Tax
-- Cedula (Community Tax)
-- Business Tax
-- Utility Services
-- Permits & Licenses
-- Other Fees
+**Categories** (22 total):
+1. Water Services — Municipal Waterworks District (MWD/MWSS)
+2. Electric Services — DLPC / LAGECO Electric Cooperative
+3. Real Property Tax (RPT) — Municipal Treasurer's Office
+4. Community Tax Certificate (Cedula) — Municipal Treasurer's Office
+5. Business / Mayor's Permit — BPLO
+6. Building & Construction Permits — Municipal Engineering Office / MPDO
+7. Civil Registry Services — LCRO
+8. Transportation & Franchise Fees — TODA / Municipal Treasurer
+9. Parking & Road Use Fees — Municipal Engineer's Office
+10. Tourism & Recreation Fees — Municipal Tourism Office
+11. Venues & Events Fees — Mayor's Office
+12. Barangay Services — 40 Barangay Halls
+13. Barangay Tax — Barangay Treasurers
+14. Education & Social Services — Schools Division / MSWD
+15. Health & Sanitation Fees — Municipal Health Office
+16. Public Market Fees — Municipal Market Administration
+17. Environmental Services — MENRO
+18. Records & Administrative Fees — Various Offices
+19. Agriculture & Fishery Fees — Municipal Agriculturist Office
+20. Environmental Ordinance Violations — MENRO
+21. Business Ordinance Violations — BPLO / Municipal Treasurer
+22. Impoundment Fees — Municipal Impounding Area
 
 ---
 
