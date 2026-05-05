@@ -207,4 +207,50 @@ export const reportsService = {
       date: today.toISOString().split('T')[0],
     };
   },
+
+  async getFullAnalytics() {
+    const [billsByStatus, activeUsers, totalUsers, revenueByCategory, outstandingBills] = await Promise.all([
+      prisma.bill.groupBy({ by: ['status'], _count: { id: true }, _sum: { totalAmount: true } }),
+      prisma.user.count({ where: { status: 'ACTIVE' } }),
+      prisma.user.count(),
+      prisma.$queryRaw<Array<{ category_name: string; total: string; count: string }>>`
+        SELECT fc.category_name, SUM(p.amount)::text AS total, COUNT(p.id)::text AS count
+        FROM payments p
+        JOIN bills b ON p.bill_id = b.id
+        JOIN bill_items bi ON bi.bill_id = b.id
+        JOIN fees f ON bi.fee_id = f.id
+        JOIN fee_categories fc ON f.category_id = fc.id
+        WHERE p.status = 'PAID'
+        GROUP BY fc.id, fc.category_name
+        ORDER BY SUM(p.amount) DESC
+        LIMIT 10
+      `,
+      prisma.bill.aggregate({
+        where: { status: { in: ['UNPAID', 'OVERDUE', 'PARTIALLY_PAID'] } },
+        _sum: { balanceAmount: true },
+        _count: { id: true },
+      }),
+    ]);
+
+    const totalRevenue = await prisma.payment.aggregate({ where: { status: 'PAID' }, _sum: { amount: true }, _count: { id: true } });
+
+    return {
+      billsByStatus: billsByStatus.map((b) => ({
+        status: b.status,
+        count: b._count.id,
+        total: parseFloat(b._sum.totalAmount?.toString() || '0'),
+      })),
+      activeUsers,
+      totalUsers,
+      revenueByCategory: revenueByCategory.map((r) => ({
+        categoryName: r.category_name,
+        total: parseFloat(r.total || '0'),
+        count: parseInt(r.count || '0'),
+      })),
+      outstandingBalance: parseFloat(outstandingBills._sum.balanceAmount?.toString() || '0'),
+      outstandingCount: outstandingBills._count.id,
+      totalRevenue: parseFloat(totalRevenue._sum.amount?.toString() || '0'),
+      totalTransactions: totalRevenue._count.id,
+    };
+  },
 };
