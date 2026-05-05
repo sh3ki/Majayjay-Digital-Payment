@@ -1,21 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Typography, Card, CardContent, Button, Table, TableHead, TableBody,
   TableRow, TableCell, CircularProgress, Alert, Chip, IconButton, Switch,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField,
-  Select, MenuItem, FormControl, InputLabel, Grid,
+  Select, MenuItem, FormControl, InputLabel, Grid, Pagination,
+  InputAdornment, Tooltip,
 } from '@mui/material';
-import { Add, Edit } from '@mui/icons-material';
+import { Add, Edit, Search, Refresh, Delete } from '@mui/icons-material';
 import { adminService } from '../../services/admin.service';
 import { PenaltyRule, Fee } from '../../types';
+
+const PAGE_SIZE = 15;
 
 const PenaltyRules: React.FC = () => {
   const [rules, setRules] = useState<PenaltyRule[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [page, setPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editRule, setEditRule] = useState<PenaltyRule | null>(null);
+  const [deleteRuleTarget, setDeleteRuleTarget] = useState<PenaltyRule | null>(null);
   const [form, setForm] = useState({
     feeId: '', penaltyType: 'LATE', calculationMethod: 'FIXED',
     amountOrRate: '', gracePeriodDays: '0', maxPenaltyAmount: '', applyMonthly: false,
@@ -72,68 +79,106 @@ const PenaltyRules: React.FC = () => {
     catch { setError('Failed to toggle rule status'); }
   };
 
+  const handleDelete = async () => {
+    if (!deleteRuleTarget) return;
+    try { await adminService.deletePenaltyRule(deleteRuleTarget.id); setDeleteRuleTarget(null); load(); }
+    catch { setError('Failed to delete penalty rule'); }
+  };
+
   const getFee = (feeId: number) => fees.find((f) => f.id === feeId);
+
+  // Client-side filter + pagination
+  const filtered = rules.filter((r) => {
+    const feeName = getFee(r.feeId)?.feeName || '';
+    const matchSearch = !search || feeName.toLowerCase().includes(search.toLowerCase());
+    const matchType = !typeFilter || r.penaltyType === typeFilter;
+    return matchSearch && matchType;
+  });
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <Box>
       <Box className="page-header">
         <Box>
           <Typography variant="h4" fontWeight={700} color="#0D47A1">Penalty Rules</Typography>
-          <Typography variant="body2" color="text.secondary">Configure late payment penalties and surcharges</Typography>
+          <Typography variant="body2" color="text.secondary">Configure late payment penalties and surcharges · {rules.length} rules</Typography>
         </Box>
         <Button variant="contained" startIcon={<Add />} onClick={() => handleOpen()}>Add Rule</Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
       <Card>
         <CardContent>
+          <Box display="flex" gap={2} mb={3} alignItems="center" flexWrap="wrap">
+            <TextField
+              size="small" placeholder="Search by fee name…" value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }} sx={{ flex: 1, maxWidth: 300 }}
+              InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
+            />
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Penalty Type</InputLabel>
+              <Select value={typeFilter} label="Penalty Type" onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}>
+                <MenuItem value="">All Types</MenuItem>
+                <MenuItem value="LATE">Late Fee</MenuItem>
+                <MenuItem value="INTEREST">Interest</MenuItem>
+                <MenuItem value="SURCHARGE">Surcharge</MenuItem>
+              </Select>
+            </FormControl>
+            <Tooltip title="Refresh"><IconButton onClick={load} size="small"><Refresh /></IconButton></Tooltip>
+          </Box>
+
           {loading ? <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box> : (
-            <Box sx={{ overflowX: 'auto' }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Fee</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Method</TableCell>
-                    <TableCell>Amount/Rate</TableCell>
-                    <TableCell>Grace Period</TableCell>
-                    <TableCell>Max Amount</TableCell>
-                    <TableCell align="center">Monthly</TableCell>
-                    <TableCell align="center">Active</TableCell>
-                    <TableCell align="center">Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {rules.map((rule) => (
-                    <TableRow key={rule.id}>
-                      <TableCell><Typography variant="body2" fontWeight={500}>{getFee(rule.feeId)?.feeName || `Fee #${rule.feeId}`}</Typography></TableCell>
-                      <TableCell><Chip label={rule.penaltyType} size="small" color="warning" /></TableCell>
-                      <TableCell><Chip label={rule.calculationMethod} size="small" /></TableCell>
-                      <TableCell>
-                        {rule.calculationMethod === 'FIXED' ? `₱${rule.amountOrRate}` : `${rule.amountOrRate}%`}
-                      </TableCell>
-                      <TableCell>{rule.gracePeriodDays} days</TableCell>
-                      <TableCell>{rule.maxPenaltyAmount ? `₱${rule.maxPenaltyAmount}` : '—'}</TableCell>
-                      <TableCell align="center">
-                        <Chip label={rule.applyMonthly ? 'Yes' : 'No'} size="small" color={rule.applyMonthly ? 'primary' : 'default'} />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Switch checked={rule.active} onChange={() => handleToggle(rule.id)} color="primary" size="small" />
-                      </TableCell>
-                      <TableCell align="center">
-                        <IconButton size="small" onClick={() => handleOpen(rule)}><Edit fontSize="small" /></IconButton>
-                      </TableCell>
+            <>
+              <Box sx={{ overflowX: 'auto' }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#F5F7FA' }}>
+                      <TableCell sx={{ fontWeight: 700 }}>Fee</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Method</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Amount/Rate</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Grace Period</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Max Amount</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Monthly</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Active</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Actions</TableCell>
                     </TableRow>
-                  ))}
-                  {rules.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={9} align="center" sx={{ py: 4, color: '#757575' }}>No penalty rules configured</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </Box>
+                  </TableHead>
+                  <TableBody>
+                    {paged.length === 0 ? (
+                      <TableRow><TableCell colSpan={9} align="center" sx={{ py: 5, color: '#9E9E9E' }}>No penalty rules found</TableCell></TableRow>
+                    ) : paged.map((rule) => (
+                      <TableRow key={rule.id} hover>
+                        <TableCell><Typography variant="body2" fontWeight={500}>{getFee(rule.feeId)?.feeName || `Fee #${rule.feeId}`}</Typography></TableCell>
+                        <TableCell><Chip label={rule.penaltyType} size="small" color="warning" /></TableCell>
+                        <TableCell><Chip label={rule.calculationMethod} size="small" /></TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>
+                          {rule.calculationMethod === 'FIXED' ? `₱${rule.amountOrRate}` : `${rule.amountOrRate}%`}
+                        </TableCell>
+                        <TableCell>{rule.gracePeriodDays} days</TableCell>
+                        <TableCell>{rule.maxPenaltyAmount ? `₱${rule.maxPenaltyAmount}` : '—'}</TableCell>
+                        <TableCell align="center">
+                          <Chip label={rule.applyMonthly ? 'Yes' : 'No'} size="small" color={rule.applyMonthly ? 'primary' : 'default'} />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Switch checked={rule.active} onChange={() => handleToggle(rule.id)} color="primary" size="small" />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title="Edit"><IconButton size="small" onClick={() => handleOpen(rule)}><Edit fontSize="small" /></IconButton></Tooltip>
+                          <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => setDeleteRuleTarget(rule)}><Delete fontSize="small" /></IconButton></Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+              {filtered.length > PAGE_SIZE && (
+                <Box display="flex" justifyContent="flex-end" mt={2}>
+                  <Pagination count={Math.ceil(filtered.length / PAGE_SIZE)} page={page} onChange={(_, p) => setPage(p)} color="primary" size="small" />
+                </Box>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -197,6 +242,17 @@ const PenaltyRules: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleSave}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={Boolean(deleteRuleTarget)} onClose={() => setDeleteRuleTarget(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete Penalty Rule</DialogTitle>
+        <DialogContent>
+          <Typography>Permanently delete the penalty rule for <strong>{fees.find(f => f.id === deleteRuleTarget?.feeId)?.feeName || `Fee #${deleteRuleTarget?.feeId}`}</strong>? This cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteRuleTarget(null)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>Delete</Button>
         </DialogActions>
       </Dialog>
     </Box>
