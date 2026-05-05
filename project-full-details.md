@@ -189,18 +189,51 @@ receipts.download (own receipts)
 
 #### 2.1 Fee Setup & Configuration
 
-**Fee Types:**
-- Real Property Tax (RPT)
-- Cedula (Community Tax Certificate)
-- Business Tax
-- Water Utility
-- Electricity Utility
-- Barangay Fees
-- Environmental Fees
-- Business Permits
-- Professional Licenses
-- Miscellaneous Fees
-- Custom fees (admin-defined)
+**Fee Types** (22 categories, 130+ individual fees):
+
+**Utilities**
+- Water Services — MWD (residential, commercial, institutional; connections, deposits, reconnection, late surcharge)
+- Electric Services — LAGECO (connection, deposit, reconnection, transformer, inspection, late penalty)
+
+**Taxes**
+- Real Property Tax (RPT) — Municipal Treasurer's Office (basic RPT 1%, SEF 1%, idle land 5%, late penalty 2%/mo, transfer tax 0.5%, tax clearance)
+- Community Tax Certificate (Cedula) — Municipal Treasurer's Office (individual ₱5 base + ₱1/₱1,000 income; corporation ₱500 base + ₱2/₱5,000 gross receipts)
+
+**Permits & Licenses**
+- Business / Mayor's Permit — BPLO (processing fee, LBT, sanitary inspection, garbage, zoning clearance, fire safety cert, late renewal 25%)
+- Building & Construction Permits — Engineering/MPDO (building, electrical, plumbing, fencing, demolition, certificate of occupancy)
+- Transportation & Franchise — TODA/MTO (TOP, TDP, franchise fees, body number sticker, unit transfer, terminal fee)
+- Parking & Road Use — Municipal Engineer's Office (parking, road right-of-way, excavation, heavy equipment, loading/unloading zone)
+
+**Civil Registry**
+- Civil Registry Services — LCRO (birth/marriage/death certificates, marriage license, RA 9048 correction, name change, municipal clearance)
+
+**Tourism & Recreation**
+- Tourism & Recreation — Municipal Tourism Office (Taytay Falls entrance local/foreign, parking, camping permit)
+- Venues & Events — Mayor's Office (covered court, plaza/park, function hall, special events, fiesta/parade, film/photography permit)
+
+**Barangay-Level**
+- Barangay Services — 40 Barangay Halls (clearance, indigency, residency, business clearance, certification, blotter, Lupon mediation)
+- Barangay Tax — Barangay Treasurers (1% of gross receipts, annual registration, community service fund)
+
+**Social Services**
+- Education & Social Services — Schools Division/MSWD (good moral cert, Form 137, scholarship, solo parent ID, PWD ID, senior citizen ID)
+
+**Health & Sanitation**
+- Health & Sanitation — Municipal Health Office (health cert, food handler cert, sanitary permit, burial permit, exhumation, slaughterhouse inspection)
+
+**Market & Environment**
+- Public Market — Municipal Market Administration (daily/monthly stall rental, vendor permit, stall transfer)
+- Environmental Services — MENRO (residential/commercial garbage, tree-cutting permit, dog registration, cemetery lot)
+
+**Administrative**
+- Records & Administrative — Various Offices (photocopying, certified true copy, fax, notarial/authentication, filing fee, publication fee)
+- Agriculture & Fishery — Municipal Agriculturist Office (fishpond/aquaculture, animal transport, livestock registration, slaughter permit, fertilizer dealer permit)
+
+**Violations & Fines**
+- Environmental Ordinance Violations — MENRO (illegal tree cutting, quarrying, burning, water pollution, stray animals, unregistered dogs)
+- Business Ordinance Violations — BPLO/MTO (operating without permit, expired permit, selling outside area, sidewalk vending, no health cert, adulterated goods, beyond hours)
+- Impoundment Fees — Municipal Impounding Area (motorcycle/tricycle, 4-wheel vehicle, release processing fee)
 
 **Fee Attributes:**
 - Fee ID (unique identifier)
