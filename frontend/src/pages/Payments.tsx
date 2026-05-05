@@ -6,7 +6,7 @@ import {
   TableHead, TableBody, TableRow, TableCell, CircularProgress, Alert,
   IconButton, Tooltip, Chip,
 } from '@mui/material';
-import { Search, Visibility, Refresh, FilterList } from '@mui/icons-material';
+import { Search, Refresh, FilterList } from '@mui/icons-material';
 import { paymentsService } from '../services/payments.service';
 import { Payment } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
@@ -117,7 +117,6 @@ const Payments: React.FC = () => {
                       <TableCell align="center" sx={{ fontWeight: 700 }}>Status</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Date & Time</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 700 }}>OR #</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -128,7 +127,12 @@ const Payments: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ) : payments.map((p) => (
-                      <TableRow key={p.id} hover>
+                      <TableRow
+                        key={p.id}
+                        hover
+                        onClick={() => navigate(`/payments/${p.id}`)}
+                        sx={{ cursor: 'pointer' }}
+                      >
                         <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{p.transactionId}</TableCell>
                         {!isResident && (
                           <TableCell>
@@ -148,13 +152,6 @@ const Payments: React.FC = () => {
                         <TableCell sx={{ fontSize: 12, color: '#757575', whiteSpace: 'nowrap' }}>{formatDateTime(p.paymentDate)}</TableCell>
                         <TableCell align="center" sx={{ fontFamily: 'monospace', fontSize: 11 }}>
                           {(p.receipt as { orNumber?: string })?.orNumber || '—'}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Tooltip title="View details">
-                            <IconButton size="small" onClick={() => navigate(`/payments/${p.id}`)}>
-                              <Visibility fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}
