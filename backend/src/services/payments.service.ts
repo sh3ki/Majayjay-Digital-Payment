@@ -179,29 +179,30 @@ export const paymentsService = {
     });
     if (!bill) throw new Error('Bill not found');
 
-    const transactionId = generateTransactionId();
-    const paymentUrl = `${env.FRONTEND_URL}/pay/${transactionId}`;
+    // QR encodes the bill detail URL — scan → redirect to bill details
+    const billUrl = `${env.FRONTEND_URL}/bills/${billId}`;
 
     const qrData = {
-      transactionId,
+      type: 'BILL',
+      billId,
+      billNumber: bill.billNumber,
       amount: parseFloat(bill.balanceAmount.toString()),
       currency: 'PHP',
-      feeType: bill.items.map((i) => i.feeName).join(', '),
       payerReference: bill.billNumber,
       dueDate: bill.dueDate.toISOString().split('T')[0],
       systemId: 'MAJAYJAY_LGU',
-      paymentUrl,
+      url: billUrl,
     };
 
-    const qrImageDataUrl = await generateQRCode(qrData);
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const qrImageDataUrl = await generateQRCode(billUrl);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     const qrCode = await prisma.qRCode.create({
       data: {
         billId,
-        transactionId,
+        transactionId: `BILL-${billId}-${Date.now()}`,
         amount: parseFloat(bill.balanceAmount.toString()),
-        feeType: qrData.feeType,
+        feeType: bill.items.map((i) => i.feeName).join(', '),
         payerReference: bill.billNumber,
         qrImageUrl: qrImageDataUrl,
         encodedData: qrData as unknown as Prisma.InputJsonValue,
@@ -209,7 +210,31 @@ export const paymentsService = {
       },
     });
 
-    return { qrCode, qrImageDataUrl, paymentUrl, transactionId };
+    return { qrCode, qrImageDataUrl, billUrl, billNumber: bill.billNumber };
+  },
+
+  async generateQRForPayment(paymentId: number) {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { payer: true, bill: true, receipt: true },
+    });
+    if (!payment) throw new Error('Payment not found');
+
+    const paymentUrl = `${env.FRONTEND_URL}/payments/${paymentId}`;
+
+    const qrData = {
+      type: 'PAYMENT',
+      paymentId,
+      transactionId: payment.transactionId,
+      amount: parseFloat(payment.amount.toString()),
+      currency: 'PHP',
+      systemId: 'MAJAYJAY_LGU',
+      url: paymentUrl,
+    };
+
+    const qrImageDataUrl = await generateQRCode(paymentUrl);
+
+    return { qrImageDataUrl, paymentUrl, transactionId: payment.transactionId };
   },
 };
 
