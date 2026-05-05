@@ -1,19 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box, Grid, Card, CardContent, Typography, Chip, CircularProgress, Alert,
+  Box, Grid, Card, CardContent, Typography, Chip, CircularProgress, Alert, Button,
+  Table, TableHead, TableBody, TableRow, TableCell,
 } from '@mui/material';
 import {
   TrendingUp, TrendingDown, AttachMoney, PendingActions,
-  CheckCircle, Error as ErrorIcon,
+  CheckCircle, Error as ErrorIcon, Receipt, Payment as PaymentIcon,
+  CalendarToday, AccountBalance,
 } from '@mui/icons-material';
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, Legend, BarChart, Bar,
 } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import { reportsService } from '../services/reports.service';
-import { DashboardKPIs, MonthlyRevenue, PaymentMethodBreakdown } from '../types';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { billsService } from '../services/bills.service';
+import { paymentsService } from '../services/payments.service';
+import { DashboardKPIs, MonthlyRevenue, PaymentMethodBreakdown, Bill, Payment } from '../types';
+import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
+import { useAuth } from '../hooks/useAuth';
 
 const COLORS = ['#1565C0', '#42A5F5', '#2196F3', '#FFC107'];
 
@@ -47,7 +53,158 @@ const KPICard: React.FC<{
   </Card>
 );
 
+// ── Resident Dashboard ────────────────────────────────────────────────────────
+const ResidentDashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [billsRes, paymentsRes] = await Promise.all([
+          billsService.getBills({ limit: 50 }),
+          paymentsService.getPayments({ limit: 5 }),
+        ]);
+        if (billsRes.data) setBills(billsRes.data);
+        if (paymentsRes.data) setPayments(paymentsRes.data);
+      } catch {
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading) return <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>;
+  if (error) return <Alert severity="error">{error}</Alert>;
+
+  const unpaidBills = bills.filter((b) => ['ISSUED', 'UNPAID', 'OVERDUE', 'PARTIALLY_PAID'].includes(b.status));
+  const totalOutstanding = unpaidBills.reduce((s, b) => s + parseFloat(String(b.balanceAmount)), 0);
+  const totalPaid = payments.reduce((s, p) => s + parseFloat(String(p.amount)), 0);
+  const nextDue = unpaidBills.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+
+  return (
+    <Box>
+      <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>My Dashboard</Typography>
+      <Typography variant="body2" color="text.secondary" mb={3}>Overview of your bills and payments</Typography>
+
+      <Grid container spacing={3} mb={3}>
+        <Grid item xs={12} sm={6} md={3}>
+          <KPICard title="Outstanding Balance" value={formatCurrency(totalOutstanding)}
+            subtitle={`${unpaidBills.length} unpaid bill${unpaidBills.length !== 1 ? 's' : ''}`}
+            icon={<PendingActions />} color="#F44336" />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <KPICard title="Recent Payments" value={formatCurrency(totalPaid)}
+            subtitle="From recent history" icon={<AttachMoney />} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <KPICard title="Next Due Date" value={nextDue ? formatDate(nextDue.dueDate) : 'None'}
+            subtitle={nextDue ? nextDue.billNumber : 'All bills paid!'}
+            icon={<CalendarToday />} color={nextDue ? '#FF9800' : '#4CAF50'} />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <KPICard title="Total Bills" value={String(bills.length)}
+            subtitle={`${bills.filter(b => b.status === 'PAID').length} paid`}
+            icon={<Receipt />} color="#1565C0" />
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3}>
+        {/* Unpaid Bills */}
+        <Grid item xs={12} md={7}>
+          <Card>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1">My Unpaid Bills</Typography>
+                <Button size="small" onClick={() => navigate('/bills')}>View All</Button>
+              </Box>
+              {unpaidBills.length === 0 ? (
+                <Box py={4} textAlign="center">
+                  <CheckCircle sx={{ fontSize: 48, color: '#4CAF50', mb: 1 }} />
+                  <Typography color="text.secondary">All bills are paid!</Typography>
+                </Box>
+              ) : (
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: '#F5F7FA' }}>
+                      <TableCell sx={{ fontWeight: 700 }}>Bill No.</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Due Date</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>Balance</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Status</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>Action</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {unpaidBills.slice(0, 5).map((b) => (
+                      <TableRow key={b.id} hover>
+                        <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{b.billNumber}</TableCell>
+                        <TableCell sx={{ fontSize: 12, color: new Date() > new Date(b.dueDate) ? '#F44336' : 'inherit' }}>
+                          {formatDate(b.dueDate)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, color: '#F44336' }}>
+                          {formatCurrency(parseFloat(String(b.balanceAmount)))}
+                        </TableCell>
+                        <TableCell align="center"><StatusBadge status={b.status} /></TableCell>
+                        <TableCell align="center">
+                          <Button size="small" variant="contained" sx={{ fontSize: 11 }}
+                            onClick={() => navigate(`/bills/${b.id}`)}>View</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Recent Payments */}
+        <Grid item xs={12} md={5}>
+          <Card>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1">Recent Payments</Typography>
+                <Button size="small" onClick={() => navigate('/payments')}>View All</Button>
+              </Box>
+              {payments.length === 0 ? (
+                <Box py={4} textAlign="center">
+                  <PaymentIcon sx={{ fontSize: 48, color: '#9E9E9E', mb: 1 }} />
+                  <Typography color="text.secondary">No payments yet</Typography>
+                </Box>
+              ) : (
+                payments.map((p) => (
+                  <Box key={p.id} display="flex" justifyContent="space-between" alignItems="center"
+                    py={1} borderBottom="1px solid #F0F0F0" sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F5F7FA' } }}
+                    onClick={() => navigate(`/payments/${p.id}`)}>
+                    <Box>
+                      <Typography variant="body2" fontWeight={600}>{(p.receipt as { orNumber?: string })?.orNumber || p.transactionId}</Typography>
+                      <Typography variant="caption" color="text.secondary">{formatDateTime(p.paymentDate)}</Typography>
+                    </Box>
+                    <Box textAlign="right">
+                      <Typography variant="body2" fontWeight={700} color="#1565C0">
+                        {formatCurrency(parseFloat(String(p.amount)))}
+                      </Typography>
+                      <StatusBadge status={p.status} />
+                    </Box>
+                  </Box>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+// ── Staff Dashboard ───────────────────────────────────────────────────────────
 const Dashboard: React.FC = () => {
+  const { isResident } = useAuth();
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [revenue, setRevenue] = useState<MonthlyRevenue[]>([]);
   const [methodBreakdown, setMethodBreakdown] = useState<PaymentMethodBreakdown[]>([]);
@@ -55,6 +212,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (isResident) { setLoading(false); return; }
     const load = async () => {
       try {
         const [kpiRes, revRes, methodRes] = await Promise.all([
@@ -72,7 +230,9 @@ const Dashboard: React.FC = () => {
       }
     };
     load();
-  }, []);
+  }, [isResident]);
+
+  if (isResident) return <ResidentDashboard />;
 
   if (loading) {
     return (
