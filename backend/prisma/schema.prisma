@@ -134,40 +134,48 @@ model Department {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  users User[]
+  users         User[]
+  feeCategories FeeCategory[]
 
   @@map("departments")
 }
 
 model User {
-  id              Int        @id @default(autoincrement())
-  email           String     @unique
-  passwordHash    String     @map("password_hash")
-  firstName       String     @map("first_name")
-  lastName        String     @map("last_name")
-  contactNumber   String     @map("contact_number")
-  roleId          Int        @map("role_id")
-  departmentId    Int?       @map("department_id")
-  status          UserStatus @default(ACTIVE)
-  emailVerified   Boolean    @default(false) @map("email_verified")
-  emailVerifiedAt DateTime?  @map("email_verified_at")
-  lastLoginAt     DateTime?  @map("last_login_at")
-  lastLoginIp     String?    @map("last_login_ip")
-  twoFaEnabled    Boolean    @default(false) @map("two_fa_enabled")
-  createdAt       DateTime   @default(now()) @map("created_at")
-  updatedAt       DateTime   @updatedAt @map("updated_at")
-  createdById     Int?       @map("created_by")
-  updatedById     Int?       @map("updated_by")
+  id                   Int        @id @default(autoincrement())
+  email                String     @unique
+  passwordHash         String     @map("password_hash")
+  firstName            String     @map("first_name")
+  middleName           String?    @map("middle_name")
+  lastName             String     @map("last_name")
+  contactNumber        String     @map("contact_number")
+  address              String?    @map("address")
+  barangay             String?    @map("barangay")
+  roleId               Int        @map("role_id")
+  departmentId         Int?       @map("department_id")
+  status               UserStatus @default(ACTIVE)
+  emailVerified        Boolean    @default(false) @map("email_verified")
+  emailVerifiedAt      DateTime?  @map("email_verified_at")
+  lastLoginAt          DateTime?  @map("last_login_at")
+  lastLoginIp          String?    @map("last_login_ip")
+  twoFaEnabled         Boolean    @default(false) @map("two_fa_enabled")
+  failedLoginAttempts  Int        @default(0) @map("failed_login_attempts")
+  lockedUntil          DateTime?  @map("locked_until")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+  createdById          Int?       @map("created_by")
+  updatedById          Int?       @map("updated_by")
 
-  role          Role           @relation(fields: [roleId], references: [id])
-  department    Department?    @relation(fields: [departmentId], references: [id])
-  sessions      Session[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  createdBills  Bill[]         @relation("billCreator")
-  payerBills    Bill[]         @relation("billPayer")
-  payments      Payment[]      @relation("payerPayments")
-  cashierPayments Payment[]    @relation("cashierPayments")
+  role               Role              @relation(fields: [roleId], references: [id])
+  department         Department?       @relation(fields: [departmentId], references: [id])
+  sessions           Session[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  createdBills       Bill[]            @relation("billCreator")
+  payerBills         Bill[]            @relation("billPayer")
+  payments           Payment[]         @relation("payerPayments")
+  cashierPayments    Payment[]         @relation("cashierPayments")
+  passwordResetTokens PasswordResetToken[]
+  cashierSessions    CashierSession[]  @relation("cashierSessions")
 
   @@index([email])
   @@index([roleId])
@@ -200,8 +208,10 @@ model FeeCategory {
   displayOrder Int      @default(0) @map("display_order")
   active       Boolean  @default(true)
   createdAt    DateTime @default(now()) @map("created_at")
+  departmentId Int?     @map("department_id")
 
-  fees Fee[]
+  fees       Fee[]
+  department Department? @relation(fields: [departmentId], references: [id])
 
   @@map("fee_categories")
 }
@@ -234,22 +244,25 @@ model Fee {
 }
 
 model Bill {
-  id             Int        @id @default(autoincrement())
-  billNumber     String     @unique @map("bill_number")
-  payerId        Int        @map("payer_id")
-  billDate       DateTime   @db.Date @map("bill_date")
-  dueDate        DateTime   @db.Date @map("due_date")
-  totalAmount    Decimal    @db.Decimal(12, 2) @map("total_amount")
-  paidAmount     Decimal    @default(0) @db.Decimal(12, 2) @map("paid_amount")
-  balanceAmount  Decimal    @db.Decimal(12, 2) @map("balance_amount")
-  penaltyAmount  Decimal    @default(0) @db.Decimal(12, 2) @map("penalty_amount")
-  discountAmount Decimal    @default(0) @db.Decimal(12, 2) @map("discount_amount")
-  status         BillStatus @default(DRAFT)
-  notes          String?
-  createdById    Int        @map("created_by")
-  updatedById    Int?       @map("updated_by")
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
+  id                 Int        @id @default(autoincrement())
+  billNumber         String     @unique @map("bill_number")
+  payerId            Int        @map("payer_id")
+  billDate           DateTime   @db.Date @map("bill_date")
+  dueDate            DateTime   @db.Date @map("due_date")
+  billingYear        Int?       @map("billing_year")
+  billingPeriodStart DateTime?  @db.Date @map("billing_period_start")
+  billingPeriodEnd   DateTime?  @db.Date @map("billing_period_end")
+  totalAmount        Decimal    @db.Decimal(12, 2) @map("total_amount")
+  paidAmount         Decimal    @default(0) @db.Decimal(12, 2) @map("paid_amount")
+  balanceAmount      Decimal    @db.Decimal(12, 2) @map("balance_amount")
+  penaltyAmount      Decimal    @default(0) @db.Decimal(12, 2) @map("penalty_amount")
+  discountAmount     Decimal    @default(0) @db.Decimal(12, 2) @map("discount_amount")
+  status             BillStatus @default(DRAFT)
+  notes              String?
+  createdById        Int        @map("created_by")
+  updatedById        Int?       @map("updated_by")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
 
   payer    User              @relation("billPayer", fields: [payerId], references: [id])
   creator  User              @relation("billCreator", fields: [createdById], references: [id])
@@ -340,21 +353,23 @@ model PaymentMethod {
 }
 
 model Payment {
-  id              Int           @id @default(autoincrement())
-  transactionId   String        @unique @map("transaction_id")
-  billId          Int?          @map("bill_id")
-  payerId         Int           @map("payer_id")
-  amount          Decimal       @db.Decimal(12, 2)
-  paymentMethodId Int           @map("payment_method_id")
-  status          PaymentStatus @default(PENDING)
-  referenceNumber String?       @map("reference_number")
-  cashierId       Int?          @map("cashier_id")
-  terminalId      String?       @map("terminal_id")
-  paymentDate     DateTime      @map("payment_date")
-  verifiedAt      DateTime?     @map("verified_at")
-  verifiedById    Int?          @map("verified_by")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id                        Int           @id @default(autoincrement())
+  transactionId             String        @unique @map("transaction_id")
+  billId                    Int?          @map("bill_id")
+  payerId                   Int           @map("payer_id")
+  amount                    Decimal       @db.Decimal(12, 2)
+  paymentMethodId           Int           @map("payment_method_id")
+  status                    PaymentStatus @default(PENDING)
+  referenceNumber           String?       @map("reference_number")
+  cashierId                 Int?          @map("cashier_id")
+  terminalId                String?       @map("terminal_id")
+  paymongoPaymentIntentId   String?       @map("paymongo_payment_intent_id")
+  paymongoSourceId          String?       @map("paymongo_source_id")
+  paymentDate               DateTime      @map("payment_date")
+  verifiedAt                DateTime?     @map("verified_at")
+  verifiedById              Int?          @map("verified_by")
+  createdAt                 DateTime      @default(now()) @map("created_at")
+  updatedAt                 DateTime      @updatedAt @map("updated_at")
 
   bill    Bill?           @relation(fields: [billId], references: [id])
   payer   User            @relation("payerPayments", fields: [payerId], references: [id])
@@ -379,6 +394,9 @@ model OfficialReceipt {
   paymentMethod String?       @map("payment_method")
   cashierId     Int?          @map("cashier_id")
   terminalId    String?       @map("terminal_id")
+  issuedAt      DateTime      @default(now()) @map("issued_at")
+  payerName     String?       @map("payer_name")
+  payerAddress  String?       @map("payer_address")
   orData        Json?         @map("or_data")
   status        ReceiptStatus @default(GENERATED)
   createdAt     DateTime      @default(now()) @map("created_at")
@@ -479,4 +497,75 @@ model Notification {
   @@index([status])
   @@index([createdAt])
   @@map("notifications")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model PaymentIntent {
+  id                      Int           @id @default(autoincrement())
+  billId                  Int           @map("bill_id")
+  payerId                 Int           @map("payer_id")
+  paymongoPaymentIntentId String        @unique @map("paymongo_payment_intent_id")
+  paymongoSourceId        String?       @map("paymongo_source_id")
+  amount                  Decimal       @db.Decimal(12, 2)
+  currency                String        @default("PHP")
+  status                  String        @default("pending")
+  paymentMethod           String        @map("payment_method")
+  returnUrl               String?       @map("return_url")
+  failedUrl               String?       @map("failed_url")
+  paymentUrl              String?       @map("payment_url")
+  expiresAt               DateTime?     @map("expires_at")
+  paidAt                  DateTime?     @map("paid_at")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  @@index([billId])
+  @@index([payerId])
+  @@index([status])
+  @@map("payment_intents")
+}
+
+model CashierSession {
+  id         Int       @id @default(autoincrement())
+  cashierId  Int       @map("cashier_id")
+  terminalId String    @map("terminal_id")
+  openedAt   DateTime  @default(now()) @map("opened_at")
+  closedAt   DateTime? @map("closed_at")
+  openingCash Decimal  @default(0) @db.Decimal(12, 2) @map("opening_cash")
+  closingCash Decimal? @db.Decimal(12, 2) @map("closing_cash")
+  totalCollected Decimal @default(0) @db.Decimal(12, 2) @map("total_collected")
+  notes      String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  cashier User @relation("cashierSessions", fields: [cashierId], references: [id])
+
+  @@index([cashierId])
+  @@index([openedAt])
+  @@map("cashier_sessions")
+}
+
+model SystemSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  label     String?
+  category  String?  @default("general")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedById Int?   @map("updated_by")
+
+  @@index([category])
+  @@map("system_settings")
 }
