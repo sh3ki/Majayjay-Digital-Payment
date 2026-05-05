@@ -646,21 +646,16 @@ const LandingPage: React.FC = () => {
             </Typography>
           </Box>
 
-          <Grid container spacing={4} alignItems="flex-start">
+          <Grid container spacing={4} alignItems="flex-start" justifyContent="center">
             {STEPS.map((step, i) => (
               <React.Fragment key={step.number}>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} sm={6} md={3}>
                   <StepCard {...step} />
                 </Grid>
                 {i < STEPS.length - 1 && (
-                  <Box
-                    sx={{
-                      display: { xs: 'none', md: 'flex' },
-                      alignItems: 'center', mt: 3,
-                    }}
-                  >
-                    <ArrowForward sx={{ color: ACCENT, fontSize: 28, mx: -1 }} />
-                  </Box>
+                  <Grid item xs={false} md="auto" sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', pt: '48px !important' }}>
+                    <ArrowForward sx={{ color: ACCENT, fontSize: 28 }} />
+                  </Grid>
                 )}
               </React.Fragment>
             ))}
