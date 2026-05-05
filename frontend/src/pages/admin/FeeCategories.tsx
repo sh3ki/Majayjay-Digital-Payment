@@ -140,7 +140,7 @@ const FeeCategories: React.FC = () => {
                         {search || deptFilter ? 'No categories match your filters' : 'No categories found'}
                       </TableCell></TableRow>
                     ) : paged.map((cat) => (
-                      <TableRow key={cat.id} hover>
+                      <TableRow key={cat.id} hover onClick={() => handleOpen(cat)} sx={{ cursor: 'pointer' }}>
                         <TableCell>
                           <Typography fontWeight={600} variant="body2">{cat.categoryName}</Typography>
                         </TableCell>
@@ -153,7 +153,7 @@ const FeeCategories: React.FC = () => {
                         <TableCell align="center">
                           <Chip label={cat._count?.fees ?? '—'} size="small" />
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <Tooltip title="Edit">
                             <IconButton size="small" onClick={() => handleOpen(cat)}><Edit fontSize="small" /></IconButton>
                           </Tooltip>
