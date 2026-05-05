@@ -1,39 +1,53 @@
 import React, { useState } from 'react';
-import { Box, Toolbar } from '@mui/material';
+import { Box, useMediaQuery, useTheme } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
-import Sidebar from './Sidebar';
-
-const DRAWER_WIDTH = 256;
+import Sidebar, { SIDEBAR_EXPANDED, SIDEBAR_COLLAPSED } from './Sidebar';
 
 const Layout: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const sidebarWidth = isMobile ? 0 : (collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED);
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <Navbar onMenuToggle={() => setMobileOpen(!mobileOpen)} />
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F5F7FA' }}>
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
 
-      <Box sx={{ display: { xs: 'none', md: 'block' }, width: { md: DRAWER_WIDTH }, flexShrink: 0 }}>
-        <Sidebar open={true} onClose={() => {}} variant="permanent" />
-      </Box>
-
-      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-        <Sidebar open={mobileOpen} onClose={() => setMobileOpen(false)} variant="temporary" />
-      </Box>
-
+      {/* Main content — offset by sidebar width on desktop */}
       <Box
-        component="main"
         sx={{
-          flexGrow: 1,
-          p: 3,
+          flex: 1,
+          ml: { md: `${sidebarWidth}px` },
+          transition: 'margin-left 0.2s ease',
+          display: 'flex',
+          flexDirection: 'column',
           minHeight: '100vh',
           minWidth: 0,
-          overflowX: 'hidden',
-          background: '#F5F5F5',
         }}
       >
-        <Toolbar />
-        <Box sx={{ width: '100%', maxWidth: '100%', mx: 0 }}>
+        <Navbar
+          onMenuToggle={() => setMobileOpen((o) => !o)}
+          sidebarWidth={sidebarWidth}
+        />
+
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            p: { xs: 2, sm: 3 },
+            mt: '64px', // Navbar height
+            minWidth: 0,
+            overflowX: 'hidden',
+          }}
+        >
           <Outlet />
         </Box>
       </Box>
