@@ -112,7 +112,7 @@ const Departments: React.FC = () => {
                         {search ? 'No departments match your search' : 'No departments found'}
                       </TableCell></TableRow>
                     ) : paged.map((dept) => (
-                      <TableRow key={dept.id} hover>
+                      <TableRow key={dept.id} hover onClick={() => handleOpen(dept)} sx={{ cursor: 'pointer' }}>
                         <TableCell><Typography fontWeight={600} variant="body2">{dept.departmentName}</Typography></TableCell>
                         <TableCell>{dept.contactEmail || '—'}</TableCell>
                         <TableCell>{dept.contactPhone || '—'}</TableCell>
@@ -120,7 +120,7 @@ const Departments: React.FC = () => {
                         <TableCell align="center">
                           <Chip label={dept.active ? 'Active' : 'Inactive'} size="small" color={dept.active ? 'success' : 'default'} />
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <Tooltip title="Edit"><IconButton size="small" onClick={() => handleOpen(dept)}><Edit fontSize="small" /></IconButton></Tooltip>
                           <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => setDeleteDeptTarget(dept)}><Delete fontSize="small" /></IconButton></Tooltip>
                         </TableCell>
