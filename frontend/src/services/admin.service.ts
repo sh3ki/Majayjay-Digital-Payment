@@ -22,8 +22,8 @@ export const adminService = {
     return data;
   },
 
-  async getFees() {
-    const { data } = await api.get<ApiResponse<Fee[]>>('/admin/fees');
+  async getFees(params?: Record<string, string | number | undefined>) {
+    const { data } = await api.get<ApiResponse<Fee[]>>('/admin/fees', { params });
     return data;
   },
 
@@ -99,6 +99,51 @@ export const adminService = {
 
   async getSystemStats() {
     const { data } = await api.get<ApiResponse<Record<string, number>>>('/admin/system-stats');
+    return data;
+  },
+
+  async createFeeCategory(dto: { categoryName: string; description?: string; departmentId?: number }) {
+    const { data } = await api.post<ApiResponse<{ id: number; categoryName: string }>>('/admin/fee-categories', dto);
+    return data;
+  },
+
+  async updateFeeCategory(id: number, dto: { categoryName?: string; description?: string; departmentId?: number }) {
+    const { data } = await api.put<ApiResponse<{ id: number; categoryName: string }>>(`/admin/fee-categories/${id}`, dto);
+    return data;
+  },
+
+  async getLedger(params?: Record<string, string | number>) {
+    const { data } = await api.get<ApiResponse<unknown[]>>('/admin/ledger', { params });
+    return data;
+  },
+
+  async getRoles() {
+    const { data } = await api.get<ApiResponse<Array<{ id: number; roleName: string }>>>('/admin/roles');
+    return data;
+  },
+
+  async deleteUser(id: number) {
+    const { data } = await api.delete<ApiResponse>(`/admin/users/${id}`);
+    return data;
+  },
+
+  async deleteFee(id: number) {
+    const { data } = await api.delete<ApiResponse>(`/admin/fees/${id}`);
+    return data;
+  },
+
+  async deleteFeeCategory(id: number) {
+    const { data } = await api.delete<ApiResponse>(`/admin/fee-categories/${id}`);
+    return data;
+  },
+
+  async deletePenaltyRule(id: number) {
+    const { data } = await api.delete<ApiResponse>(`/admin/penalty-rules/${id}`);
+    return data;
+  },
+
+  async deleteDepartment(id: number) {
+    const { data } = await api.delete<ApiResponse>(`/admin/departments/${id}`);
     return data;
   },
 };
