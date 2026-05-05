@@ -37,4 +37,14 @@ export const paymentsService = {
     const { data } = await api.get<ApiResponse<OfficialReceipt>>(`/payments/receipt/${id}`);
     return data;
   },
+
+  async downloadReceiptPDF(receiptId: string): Promise<Blob> {
+    const response = await api.get(`/payments/receipt/${receiptId}/download`, { responseType: 'blob' });
+    return response.data as Blob;
+  },
+
+  async initiateOnlinePayment(billId: number, method: 'gcash' | 'paymaya') {
+    const { data } = await api.post<ApiResponse<{ checkoutUrl: string; sourceId: string; transactionId: string }>>('/paymongo/initiate', { billId, method });
+    return data;
+  },
 };
