@@ -5,7 +5,10 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  middleName?: string;
   contactNumber?: string;
+  address?: string;
+  barangay?: string;
   status: UserStatus;
   emailVerified: boolean;
   lastLoginAt?: string;
@@ -140,6 +143,7 @@ export interface Payment {
   paymentMethodId: number;
   status: PaymentStatus;
   referenceNumber?: string;
+  notes?: string;
   cashierId?: number;
   terminalId?: string;
   paymentDate: string;
@@ -282,6 +286,7 @@ export interface AuditLog {
   action: string;
   oldValue?: string;
   newValue?: string;
+  details?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   status: 'SUCCESS' | 'FAILURE';
