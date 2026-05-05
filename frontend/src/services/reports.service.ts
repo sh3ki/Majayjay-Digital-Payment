@@ -26,4 +26,9 @@ export const reportsService = {
     const { data } = await api.get<ApiResponse<unknown>>('/reports/daily-summary');
     return data;
   },
+
+  async getFullAnalytics() {
+    const { data } = await api.get<ApiResponse<unknown>>('/reports/analytics');
+    return data;
+  },
 };
