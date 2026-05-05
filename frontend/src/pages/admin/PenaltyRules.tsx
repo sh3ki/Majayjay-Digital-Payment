@@ -149,7 +149,7 @@ const PenaltyRules: React.FC = () => {
                     {paged.length === 0 ? (
                       <TableRow><TableCell colSpan={9} align="center" sx={{ py: 5, color: '#9E9E9E' }}>No penalty rules found</TableCell></TableRow>
                     ) : paged.map((rule) => (
-                      <TableRow key={rule.id} hover>
+                      <TableRow key={rule.id} hover onClick={() => handleOpen(rule)} sx={{ cursor: 'pointer' }}>
                         <TableCell><Typography variant="body2" fontWeight={500}>{getFee(rule.feeId)?.feeName || `Fee #${rule.feeId}`}</Typography></TableCell>
                         <TableCell><Chip label={rule.penaltyType} size="small" color="warning" /></TableCell>
                         <TableCell><Chip label={rule.calculationMethod} size="small" /></TableCell>
@@ -161,10 +161,10 @@ const PenaltyRules: React.FC = () => {
                         <TableCell align="center">
                           <Chip label={rule.applyMonthly ? 'Yes' : 'No'} size="small" color={rule.applyMonthly ? 'primary' : 'default'} />
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <Switch checked={rule.active} onChange={() => handleToggle(rule.id)} color="primary" size="small" />
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <Tooltip title="Edit"><IconButton size="small" onClick={() => handleOpen(rule)}><Edit fontSize="small" /></IconButton></Tooltip>
                           <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => setDeleteRuleTarget(rule)}><Delete fontSize="small" /></IconButton></Tooltip>
                         </TableCell>
