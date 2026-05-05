@@ -5,7 +5,7 @@ import {
   IconButton, Pagination, Chip, Dialog, DialogTitle, DialogContent,
   DialogActions, Select, MenuItem, FormControl, InputLabel, Grid,
 } from '@mui/material';
-import { Search, Add, Edit, Block } from '@mui/icons-material';
+import { Search, Add, Block, Delete } from '@mui/icons-material';
 import { adminService } from '../../services/admin.service';
 import { User } from '../../types';
 import { formatDateTime } from '../../utils/formatters';
@@ -23,7 +23,9 @@ const Users: React.FC = () => {
   const [error, setError] = useState('');
   const [roles, setRoles] = useState<Array<{ id: number; roleName: string }>>([]);
   const [departments, setDepartments] = useState<Array<{ id: number; departmentName: string }>>([]);
+  const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', contactNumber: '', roleId: '', departmentId: '' });
 
   const load = useCallback(async () => {
@@ -32,11 +34,12 @@ const Users: React.FC = () => {
     try {
       const params: Record<string, string | number> = { page, limit: 20 };
       if (search) params.search = search;
+      if (statusFilter) params.status = statusFilter;
       const res = await adminService.getUsers(params);
       if (res.data) { setUsers(res.data); setTotal(res.meta?.total || 0); }
     } catch { setError('Failed to load users'); }
     finally { setLoading(false); }
-  }, [page, search]);
+  }, [page, search, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -44,9 +47,10 @@ const Users: React.FC = () => {
     const loadMeta = async () => {
       try {
         const [rolesRes, deptRes] = await Promise.all([
-          fetch('/api/v1/admin/fee-categories').then(r => r.json()).catch(() => ({ data: [] })),
+          adminService.getRoles(),
           adminService.getDepartments(),
         ]);
+        setRoles(rolesRes.data || []);
         setDepartments(deptRes.data || []);
       } catch {}
     };
@@ -70,6 +74,15 @@ const Users: React.FC = () => {
     } catch { setError('Failed to update status'); }
   };
 
+  const handleDelete = async () => {
+    if (!deleteUser) return;
+    try {
+      await adminService.deleteUser(deleteUser.id);
+      setDeleteUser(null);
+      load();
+    } catch { setError('Failed to delete user'); }
+  };
+
   return (
     <Box>
       <Box className="page-header">
@@ -84,13 +97,23 @@ const Users: React.FC = () => {
 
       <Card>
         <CardContent>
-          <Box display="flex" gap={2} mb={3}>
+          <Box display="flex" gap={2} mb={3} flexWrap="wrap">
             <TextField
               placeholder="Search users..." value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               size="small" sx={{ minWidth: 260 }}
               InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
             />
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel>Filter by Status</InputLabel>
+              <Select value={statusFilter} label="Filter by Status" onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+                <MenuItem value="">All Statuses</MenuItem>
+                <MenuItem value="ACTIVE">Active</MenuItem>
+                <MenuItem value="INACTIVE">Inactive</MenuItem>
+                <MenuItem value="SUSPENDED">Suspended</MenuItem>
+                <MenuItem value="PENDING">Pending</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
 
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -134,6 +157,9 @@ const Users: React.FC = () => {
                           <IconButton size="small" onClick={() => handleToggleStatus(user)} title={user.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                             <Block fontSize="small" color={user.status === 'ACTIVE' ? 'error' : 'success'} />
                           </IconButton>
+                          <IconButton size="small" color="error" onClick={() => setDeleteUser(user)} title="Delete user">
+                            <Delete fontSize="small" />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -149,6 +175,17 @@ const Users: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(deleteUser)} onClose={() => setDeleteUser(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Delete User</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to permanently delete <strong>{deleteUser?.firstName} {deleteUser?.lastName}</strong>? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteUser(null)}>Cancel</Button>
+          <Button variant="contained" color="error" onClick={handleDelete}>Delete</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Add New User</DialogTitle>
