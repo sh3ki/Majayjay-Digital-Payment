@@ -5,7 +5,7 @@ import {
   CircularProgress, Alert, Chip, Dialog, DialogTitle, DialogContent,
   DialogActions, TextField,
 } from '@mui/material';
-import { ArrowBack, QrCode2, Payment, Warning } from '@mui/icons-material';
+import { ArrowBack, QrCode2, Payment, Warning, Cancel, PhoneAndroid, AccountBalance } from '@mui/icons-material';
 import { QRCodeSVG } from 'qrcode.react';
 import { billsService } from '../services/bills.service';
 import { paymentsService } from '../services/payments.service';
@@ -13,11 +13,12 @@ import { Bill } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
 import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 
 const BillDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin, isCashier } = useAuth();
+  const { isAdmin, isCashier, isResident } = useAuth();
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,6 +28,9 @@ const BillDetail: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [onlinePayLoading, setOnlinePayLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -74,6 +78,40 @@ const BillDetail: React.FC = () => {
     }
   };
 
+  const handleCancelBill = async () => {
+    if (!bill) return;
+    setCancelLoading(true);
+    try {
+      await billsService.updateBillStatus(bill.id, 'CANCELLED');
+      setSuccess('Bill cancelled successfully');
+      setCancelOpen(false);
+      const res = await billsService.getBillById(bill.id);
+      if (res.data) setBill(res.data);
+    } catch {
+      setError('Failed to cancel bill');
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  const handlePayOnline = async (method: 'gcash' | 'paymaya') => {
+    if (!bill) return;
+    setOnlinePayLoading(true);
+    try {
+      const res = await api.post('/paymongo/initiate', { billId: bill.id, method });
+      const { checkoutUrl } = res.data.data;
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        setError('Failed to get checkout URL');
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Failed to initiate online payment');
+    } finally {
+      setOnlinePayLoading(false);
+    }
+  };
+
   if (loading) return <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>;
   if (error && !bill) return <Alert severity="error">{error}</Alert>;
   if (!bill) return <Alert severity="error">Bill not found</Alert>;
@@ -105,7 +143,7 @@ const BillDetail: React.FC = () => {
                   <StatusBadge status={bill.status} />
                 </Box>
                 {(isAdmin || isCashier) && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && (
-                  <Box display="flex" gap={1}>
+                  <Box display="flex" gap={1} flexWrap="wrap">
                     <Button variant="outlined" startIcon={<QrCode2 />} size="small" onClick={handleGenerateQR}>
                       Generate QR
                     </Button>
@@ -114,6 +152,25 @@ const BillDetail: React.FC = () => {
                       setCashPaymentOpen(true);
                     }}>
                       Record Cash
+                    </Button>
+                    {isAdmin && (
+                      <Button variant="outlined" color="error" startIcon={<Cancel />} size="small" onClick={() => setCancelOpen(true)}>
+                        Cancel Bill
+                      </Button>
+                    )}
+                  </Box>
+                )}
+                {isResident && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && (
+                  <Box display="flex" gap={1} flexWrap="wrap">
+                    <Button variant="contained" startIcon={<PhoneAndroid />} size="small" disabled={onlinePayLoading}
+                      onClick={() => handlePayOnline('gcash')}
+                      sx={{ bgcolor: '#00B0F0', '&:hover': { bgcolor: '#0090D0' } }}>
+                      Pay via GCash
+                    </Button>
+                    <Button variant="contained" startIcon={<AccountBalance />} size="small" disabled={onlinePayLoading}
+                      onClick={() => handlePayOnline('paymaya')}
+                      sx={{ bgcolor: '#50C878', '&:hover': { bgcolor: '#3CAB60' } }}>
+                      Pay via Maya
                     </Button>
                   </Box>
                 )}
@@ -287,6 +344,22 @@ const BillDetail: React.FC = () => {
           <Button onClick={() => setCashPaymentOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleCashPayment} disabled={paymentLoading || !paymentAmount}>
             {paymentLoading ? <CircularProgress size={20} /> : 'Record Payment'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Cancel Bill Confirmation Dialog */}
+      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Cancel Bill</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to cancel bill <strong>{bill.billNumber}</strong>? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelOpen(false)}>No, Keep It</Button>
+          <Button variant="contained" color="error" onClick={handleCancelBill} disabled={cancelLoading}>
+            {cancelLoading ? <CircularProgress size={20} color="inherit" /> : 'Yes, Cancel Bill'}
           </Button>
         </DialogActions>
       </Dialog>
