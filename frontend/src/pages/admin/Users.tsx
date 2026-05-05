@@ -26,6 +26,7 @@ const Users: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
+  const [viewUser, setViewUser] = useState<User | null>(null);
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', contactNumber: '', roleId: '', departmentId: '' });
 
   const load = useCallback(async () => {
@@ -137,7 +138,7 @@ const Users: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} hover onClick={() => setViewUser(user)} sx={{ cursor: 'pointer' }}>
                         <TableCell>
                           <Typography variant="body2" fontWeight={500}>
                             {user.firstName} {user.lastName}
@@ -153,7 +154,7 @@ const Users: React.FC = () => {
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}</TableCell>
                         <TableCell sx={{ fontSize: 12 }}>{formatDateTime(user.createdAt)}</TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <IconButton size="small" onClick={() => handleToggleStatus(user)} title={user.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
                             <Block fontSize="small" color={user.status === 'ACTIVE' ? 'error' : 'success'} />
                           </IconButton>
@@ -175,6 +176,29 @@ const Users: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={Boolean(viewUser)} onClose={() => setViewUser(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>User Details</DialogTitle>
+        <DialogContent>
+          {viewUser && (
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={6}><Typography variant="caption" color="text.secondary">Name</Typography><Typography fontWeight={600}>{viewUser.firstName} {viewUser.lastName}</Typography></Grid>
+              <Grid item xs={6}><Typography variant="caption" color="text.secondary">Email</Typography><Typography>{viewUser.email}</Typography></Grid>
+              <Grid item xs={6}><Typography variant="caption" color="text.secondary">Role</Typography><Typography>{(viewUser.role as { roleName?: string })?.roleName?.replace('_', ' ') || '—'}</Typography></Grid>
+              <Grid item xs={6}><Typography variant="caption" color="text.secondary">Status</Typography><Chip label={viewUser.status} size="small" color={STATUS_COLORS[viewUser.status] || 'default'} /></Grid>
+              <Grid item xs={6}><Typography variant="caption" color="text.secondary">Contact</Typography><Typography>{viewUser.contactNumber || '—'}</Typography></Grid>
+              <Grid item xs={6}><Typography variant="caption" color="text.secondary">Last Login</Typography><Typography>{viewUser.lastLoginAt ? formatDateTime(viewUser.lastLoginAt) : 'Never'}</Typography></Grid>
+              <Grid item xs={6}><Typography variant="caption" color="text.secondary">Joined</Typography><Typography>{formatDateTime(viewUser.createdAt)}</Typography></Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { if (viewUser) { handleToggleStatus(viewUser); setViewUser(null); } }} color={viewUser?.status === 'ACTIVE' ? 'error' : 'success'}>
+            {viewUser?.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+          </Button>
+          <Button onClick={() => setViewUser(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={Boolean(deleteUser)} onClose={() => setDeleteUser(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Delete User</DialogTitle>
