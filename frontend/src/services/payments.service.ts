@@ -33,6 +33,11 @@ export const paymentsService = {
     return data;
   },
 
+  async generatePaymentQR(paymentId: number) {
+    const { data } = await api.get<ApiResponse<{ qrImageDataUrl: string; paymentUrl: string; transactionId: string }>>(`/payments/${paymentId}/qr`);
+    return data;
+  },
+
   async getReceipt(id: string) {
     const { data } = await api.get<ApiResponse<OfficialReceipt>>(`/payments/receipt/${id}`);
     return data;
