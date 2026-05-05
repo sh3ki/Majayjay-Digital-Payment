@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, Grid, Button, Chip, Divider,
-  CircularProgress, Alert,
+  CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material';
-import { ArrowBack, Print, Download } from '@mui/icons-material';
+import { ArrowBack, Print, Download, QrCode2 } from '@mui/icons-material';
+import { QRCodeSVG } from 'qrcode.react';
 import { paymentsService } from '../services/payments.service';
 import { Payment } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
@@ -18,6 +19,9 @@ const PaymentDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [paymentQrUrl, setPaymentQrUrl] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -25,6 +29,20 @@ const PaymentDetail: React.FC = () => {
       if (r.data) setPayment(r.data);
     }).catch(() => setError('Failed to load payment')).finally(() => setLoading(false));
   }, [id]);
+
+  const handleGenerateQR = async () => {
+    if (!payment) return;
+    setQrLoading(true);
+    try {
+      const res = await paymentsService.generatePaymentQR(payment.id);
+      setPaymentQrUrl(res.data?.qrImageDataUrl || null);
+      setQrOpen(true);
+    } catch {
+      setError('Failed to generate QR code');
+    } finally {
+      setQrLoading(false);
+    }
+  };
 
   const handleDownloadPDF = async () => {
     if (!payment) return;
@@ -61,6 +79,9 @@ const PaymentDetail: React.FC = () => {
       <Box className="page-header">
         <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)}>Back</Button>
         <Box display="flex" gap={1}>
+          <Button startIcon={<QrCode2 />} onClick={handleGenerateQR} disabled={qrLoading} variant="outlined">
+            {qrLoading ? 'Generating...' : 'QR Code'}
+          </Button>
           {receipt && (
             <Button startIcon={<Download />} onClick={handleDownloadPDF} disabled={downloading} variant="contained" sx={{ bgcolor: '#1565C0' }}>
               {downloading ? 'Downloading...' : 'Download PDF'}
@@ -152,6 +173,23 @@ const PaymentDetail: React.FC = () => {
           )}
         </Grid>
       </Grid>
+
+      <Dialog open={qrOpen} onClose={() => setQrOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Payment QR Code</DialogTitle>
+        <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            Scan to view this payment: <strong>{payment?.transactionId}</strong>
+          </Typography>
+          {paymentQrUrl ? (
+            <img src={paymentQrUrl} alt="Payment QR Code" style={{ maxWidth: 240, width: '100%' }} />
+          ) : (
+            <QRCodeSVG value={`${window.location.origin}/payments/${payment?.id}`} size={220} />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setQrOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
