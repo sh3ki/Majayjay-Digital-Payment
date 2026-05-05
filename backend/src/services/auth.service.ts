@@ -1,10 +1,15 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { JwtPayload } from '../middlewares/auth.middleware';
+import { emailService } from './email.service';
+
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
 export interface RegisterDto {
   email: string;
@@ -64,8 +69,22 @@ export const authService = {
       throw new Error('Invalid credentials or account is inactive');
     }
 
+    // Account lockout check
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      throw new Error(`Account is temporarily locked. Try again in ${minutesLeft} minute(s).`);
+    }
+
     const passwordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordValid) {
+      const newAttempts = (user.failedLoginAttempts || 0) + 1;
+      const lockedUntil = newAttempts >= MAX_FAILED_ATTEMPTS
+        ? new Date(Date.now() + LOCKOUT_DURATION_MS)
+        : null;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: newAttempts, ...(lockedUntil ? { lockedUntil } : {}) },
+      });
       await safeAuditLog({
         eventType: 'LOGIN_FAILED',
         userId: user.id,
@@ -77,8 +96,17 @@ export const authService = {
         status: 'FAILURE',
         reason: 'Invalid password',
       });
+      if (newAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error(`Too many failed attempts. Account locked for 15 minutes.`);
+      }
       throw new Error('Invalid credentials');
     }
+
+    // Reset failed attempts on successful login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
 
     const accessToken = jwt.sign(
       { sub: user.id, email: user.email, role: user.role.roleName },
@@ -186,9 +214,55 @@ export const authService = {
 
   async forgotPassword(email: string) {
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return;
-    // In production: send reset email with token
-    // For now just return success (security: don't reveal if email exists)
+    // Always return silently to prevent email enumeration
+    if (!user || user.status !== 'ACTIVE') return;
+
+    // Invalidate any previous reset tokens for this user
+    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, token: rawToken, expiresAt },
+    });
+
+    // Send email (non-blocking)
+    emailService.sendPasswordReset(user.email, user.firstName, rawToken).catch((err) => {
+      logger.error(`[auth] Failed to send password reset email: ${err.message}`);
+    });
+
+    await safeAuditLog({
+      eventType: 'PASSWORD_RESET_REQUESTED',
+      userId: user.id,
+      entityType: 'user',
+      entityId: String(user.id),
+      action: 'UPDATE',
+      status: 'SUCCESS',
+    });
+  },
+
+  async resetPassword(token: string, newPassword: string) {
+    const record = await prisma.passwordResetToken.findUnique({ where: { token } });
+    if (!record || record.expiresAt < new Date() || record.usedAt) {
+      throw new Error('Invalid or expired reset token');
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: record.userId }, data: { passwordHash: newHash } });
+    await prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } });
+
+    // Invalidate all active sessions
+    await prisma.session.deleteMany({ where: { userId: record.userId } });
+
+    await safeAuditLog({
+      eventType: 'PASSWORD_RESET',
+      userId: record.userId,
+      entityType: 'user',
+      entityId: String(record.userId),
+      action: 'UPDATE',
+      status: 'SUCCESS',
+    });
   },
 };
 
