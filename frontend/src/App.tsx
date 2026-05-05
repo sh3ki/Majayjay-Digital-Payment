@@ -13,21 +13,26 @@ import Login from './pages/Login';
 import AuthCallback from './pages/AuthCallback';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Bills from './pages/Bills';
 import CreateBill from './pages/CreateBill';
 import BillDetail from './pages/BillDetail';
 import Payments from './pages/Payments';
 import PaymentDetail from './pages/PaymentDetail';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFailed from './pages/PaymentFailed';
 import Cashier from './pages/Cashier';
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import Users from './pages/admin/Users';
 import Fees from './pages/admin/Fees';
+import FeeCategories from './pages/admin/FeeCategories';
 import PenaltyRules from './pages/admin/PenaltyRules';
 import AuditLogs from './pages/admin/AuditLogs';
 import Departments from './pages/admin/Departments';
+import Ledger from './pages/admin/Ledger';
 
 const STAFF = ['admin', 'cashier', 'department_viewer'];
 const STAFF_RESIDENT = ['admin', 'cashier', 'department_viewer', 'resident'];
@@ -53,6 +58,9 @@ const App: React.FC = () => {
       <Route path="/auth-callback" element={<AuthCallback />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/payment-success" element={<PaymentSuccess />} />
+      <Route path="/payment-failed" element={<PaymentFailed />} />
 
       {/* Protected shell */}
       <Route element={<ProtectedRoute />}>
@@ -95,6 +103,12 @@ const App: React.FC = () => {
           </Route>
           <Route path="/admin/departments" element={<ProtectedRoute allowedRoles={ADMIN_ONLY} />}>
             <Route index element={<Departments />} />
+          </Route>
+          <Route path="/admin/fee-categories" element={<ProtectedRoute allowedRoles={ADMIN_ONLY} />}>
+            <Route index element={<FeeCategories />} />
+          </Route>
+          <Route path="/admin/ledger" element={<ProtectedRoute allowedRoles={ADMIN_ONLY} />}>
+            <Route index element={<Ledger />} />
           </Route>
         </Route>
       </Route>
