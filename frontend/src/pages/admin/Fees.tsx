@@ -167,7 +167,7 @@ const Fees: React.FC = () => {
                     {fees.length === 0 ? (
                       <TableRow><TableCell colSpan={7} align="center" sx={{ py: 5, color: '#9E9E9E' }}>No fees found matching your filters</TableCell></TableRow>
                     ) : fees.map((fee) => (
-                      <TableRow key={fee.id} hover>
+                      <TableRow key={fee.id} hover onClick={() => handleOpen(fee)} sx={{ cursor: 'pointer' }}>
                         <TableCell>
                           <Typography variant="body2" fontWeight={600}>{fee.feeName}</Typography>
                           {fee.description && <Typography variant="caption" color="text.secondary">{fee.description}</Typography>}
@@ -187,10 +187,10 @@ const Fees: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell><Chip label={fee.applicableTo} size="small" variant="outlined" /></TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <Switch checked={fee.active} onChange={() => handleToggle(fee.id)} color="primary" size="small" />
                         </TableCell>
-                        <TableCell align="center">
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
                           <Tooltip title="Edit"><IconButton size="small" onClick={() => handleOpen(fee)}><Edit fontSize="small" /></IconButton></Tooltip>
                           <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => setDeleteFeeTarget(fee as Fee)}><Delete fontSize="small" /></IconButton></Tooltip>
                         </TableCell>
