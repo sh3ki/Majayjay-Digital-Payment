@@ -9,6 +9,7 @@ router.use(authenticate);
 router.get('/', paymentsController.getPayments);
 router.get('/receipt/:id/download', paymentsController.downloadReceiptPDF);
 router.get('/receipt/:id', paymentsController.getReceipt);
+router.get('/:id/qr', paymentsController.generatePaymentQR);
 router.get('/:id', paymentsController.getPaymentById);
 router.post('/record-cash', authorize('admin', 'cashier'), paymentsController.recordCashPayment);
 router.post('/generate-qr', authorize('admin', 'cashier'), paymentsController.generateQR);
