@@ -108,11 +108,34 @@ export const adminController = {
   // Fees
   async getFees(req: Request, res: Response, next: NextFunction) {
     try {
-      const fees = await prisma.fee.findMany({
-        include: { category: true, penaltyRules: true },
-        orderBy: { createdAt: 'desc' },
-      });
-      sendSuccess(res, fees, 'Fees retrieved');
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const { search, categoryId, feeType, applicableTo } = req.query as Record<string, string>;
+
+      const where: Record<string, unknown> = {};
+      if (search) {
+        where.OR = [
+          { feeName: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+          { code: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+      if (categoryId) where.categoryId = parseInt(categoryId);
+      if (feeType) where.feeType = feeType;
+      if (applicableTo) where.applicableTo = applicableTo;
+
+      const [fees, total] = await Promise.all([
+        prisma.fee.findMany({
+          where,
+          skip: (page - 1) * limit,
+          take: limit,
+          include: { category: true, penaltyRules: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.fee.count({ where }),
+      ]);
+
+      sendPaginated(res, fees, total, page, limit, 'Fees retrieved');
     } catch (err) {
       next(err);
     }
@@ -162,8 +185,47 @@ export const adminController = {
   // Fee Categories
   async getFeeCategories(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await prisma.feeCategory.findMany({ orderBy: { displayOrder: 'asc' } });
+      const categories = await prisma.feeCategory.findMany({
+        include: { _count: { select: { fees: true } }, department: { select: { id: true, departmentName: true } } },
+        orderBy: { displayOrder: 'asc' },
+      });
       sendSuccess(res, categories, 'Fee categories retrieved');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createFeeCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { categoryName, description, displayOrder } = req.body;
+      const cat = await prisma.feeCategory.create({
+        data: {
+          categoryName,
+          description,
+          displayOrder: displayOrder ? parseInt(displayOrder) : 99,
+        },
+        include: { _count: { select: { fees: true } } },
+      });
+      sendSuccess(res, cat, 'Fee category created', 201);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updateFeeCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      const { categoryName, description, displayOrder } = req.body;
+      const cat = await prisma.feeCategory.update({
+        where: { id },
+        data: {
+          categoryName,
+          description,
+          displayOrder: displayOrder ? parseInt(displayOrder) : undefined,
+        },
+        include: { _count: { select: { fees: true } } },
+      });
+      sendSuccess(res, cat, 'Fee category updated');
     } catch (err) {
       next(err);
     }
@@ -249,20 +311,84 @@ export const adminController = {
     }
   },
 
+  async deleteUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      if (id === req.user!.sub) return sendError(res, 'Cannot delete your own account', 400);
+      await prisma.user.delete({ where: { id } });
+      sendSuccess(res, null, 'User deleted');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteFee(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      await prisma.fee.delete({ where: { id } });
+      sendSuccess(res, null, 'Fee deleted');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteFeeCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      await prisma.feeCategory.delete({ where: { id } });
+      sendSuccess(res, null, 'Fee category deleted');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deletePenaltyRule(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      await prisma.penaltyRule.delete({ where: { id } });
+      sendSuccess(res, null, 'Penalty rule deleted');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteDepartment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      await prisma.department.delete({ where: { id } });
+      sendSuccess(res, null, 'Department deleted');
+    } catch (err) {
+      next(err);
+    }
+  },
+
   // Audit Logs
   async getAuditLogs(req: Request, res: Response, next: NextFunction) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const { eventType, userId, startDate, endDate } = req.query as Record<string, string>;
+      const { eventType, userId, startDate, endDate, search } = req.query as Record<string, string>;
 
       const where: Record<string, unknown> = {};
       if (eventType) where.eventType = { contains: eventType, mode: 'insensitive' };
       if (userId) where.userId = parseInt(userId);
+      if (search) {
+        where.user = {
+          OR: [
+            { firstName: { contains: search, mode: 'insensitive' } },
+            { lastName: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+          ],
+        };
+      }
       if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) (where.createdAt as Record<string, unknown>).gte = new Date(startDate);
-        if (endDate) (where.createdAt as Record<string, unknown>).lte = new Date(endDate);
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          (where.createdAt as Record<string, unknown>).lte = end;
+        }
       }
 
       const [logs, total] = await Promise.all([
@@ -277,6 +403,16 @@ export const adminController = {
       ]);
 
       sendPaginated(res, logs, total, page, limit, 'Audit logs retrieved');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  // Roles
+  async getRoles(req: Request, res: Response, next: NextFunction) {
+    try {
+      const roles = await prisma.role.findMany({ orderBy: { roleName: 'asc' } });
+      sendSuccess(res, roles, 'Roles retrieved');
     } catch (err) {
       next(err);
     }
