@@ -4,7 +4,7 @@ import { calculatePenalties, calculateTotalPenalty } from '../utils/penaltyCalcu
 
 export interface CreateBillDto {
   payerId: number;
-  billDate: string;
+  billDate?: string;
   dueDate: string;
   notes?: string;
   items: Array<{
@@ -124,7 +124,7 @@ export const billsService = {
       data: {
         billNumber,
         payerId: dto.payerId,
-        billDate: new Date(dto.billDate),
+        billDate: dto.billDate ? new Date(dto.billDate) : new Date(),
         dueDate: new Date(dto.dueDate),
         totalAmount,
         balanceAmount: totalAmount,
