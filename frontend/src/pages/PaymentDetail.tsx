@@ -4,11 +4,12 @@ import {
   Box, Typography, Card, CardContent, Grid, Button, Chip, Divider,
   CircularProgress, Alert,
 } from '@mui/material';
-import { ArrowBack, Print } from '@mui/icons-material';
+import { ArrowBack, Print, Download } from '@mui/icons-material';
 import { paymentsService } from '../services/payments.service';
 import { Payment } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
+import api from '../services/api';
 
 const PaymentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,7 @@ const PaymentDetail: React.FC = () => {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -24,6 +26,27 @@ const PaymentDetail: React.FC = () => {
     }).catch(() => setError('Failed to load payment')).finally(() => setLoading(false));
   }, [id]);
 
+  const handleDownloadPDF = async () => {
+    if (!payment) return;
+    const receipt = payment.receipt as { receiptId?: string; orNumber?: string } | null;
+    const receiptRef = receipt?.receiptId || receipt?.orNumber;
+    if (!receiptRef) return;
+    setDownloading(true);
+    try {
+      const response = await api.get(`/payments/receipt/${receiptRef}/download`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `OR-${receipt?.orNumber || receiptRef}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setError('Failed to download PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (loading) return <Box display="flex" justifyContent="center" p={8}><CircularProgress sx={{ color: '#1565C0' }} /></Box>;
   if (error) return <Alert severity="error">{error}</Alert>;
   if (!payment) return null;
@@ -31,13 +54,20 @@ const PaymentDetail: React.FC = () => {
   const payer = payment.payer as { firstName?: string; lastName?: string; email?: string };
   const method = payment.method as { methodName?: string };
   const bill = payment.bill as { billNumber?: string };
-  const receipt = payment.receipt as { orNumber?: string; issuedAt?: string; orData?: unknown } | null;
+  const receipt = payment.receipt as { orNumber?: string; issuedAt?: string; orData?: unknown; receiptId?: string } | null;
 
   return (
     <Box>
       <Box className="page-header">
         <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)}>Back</Button>
-        <Button startIcon={<Print />} onClick={() => window.print()} variant="outlined">Print Receipt</Button>
+        <Box display="flex" gap={1}>
+          {receipt && (
+            <Button startIcon={<Download />} onClick={handleDownloadPDF} disabled={downloading} variant="contained" sx={{ bgcolor: '#1565C0' }}>
+              {downloading ? 'Downloading...' : 'Download PDF'}
+            </Button>
+          )}
+          <Button startIcon={<Print />} onClick={() => window.print()} variant="outlined">Print Receipt</Button>
+        </Box>
       </Box>
 
       <Grid container spacing={3}>
