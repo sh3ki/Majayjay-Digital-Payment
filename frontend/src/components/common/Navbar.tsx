@@ -2,16 +2,18 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar, Toolbar, Typography, IconButton, Box, Menu, MenuItem,
-  Divider, Avatar, Badge,
+  Divider, Avatar,
 } from '@mui/material';
-import { Menu as MenuIcon, Notifications, AccountCircle, Logout, Settings } from '@mui/icons-material';
+import { Menu as MenuIcon, AccountCircle, Logout, Settings } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
+import NotificationBell from './NotificationBell';
 
 interface Props {
   onMenuToggle: () => void;
+  sidebarWidth?: number;
 }
 
-const Navbar: React.FC<Props> = ({ onMenuToggle }) => {
+const Navbar: React.FC<Props> = ({ onMenuToggle, sidebarWidth = 0 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -26,7 +28,16 @@ const Navbar: React.FC<Props> = ({ onMenuToggle }) => {
   };
 
   return (
-    <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+    <AppBar
+      position="fixed"
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        ml: { md: `${sidebarWidth}px` },
+        width: { md: `calc(100% - ${sidebarWidth}px)` },
+        transition: 'width 0.2s ease, margin-left 0.2s ease',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+      }}
+    >
       <Toolbar>
         <IconButton color="inherit" edge="start" onClick={onMenuToggle} sx={{ mr: 2, display: { md: 'none' } }}>
           <MenuIcon />
@@ -39,11 +50,7 @@ const Navbar: React.FC<Props> = ({ onMenuToggle }) => {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton color="inherit" size="small">
-            <Badge badgeContent={0} color="error">
-              <Notifications />
-            </Badge>
-          </IconButton>
+          <NotificationBell />
 
           <IconButton onClick={handleMenu} size="small">
             <Avatar sx={{ width: 32, height: 32, bgcolor: '#0D47A1', fontSize: 13 }}>
