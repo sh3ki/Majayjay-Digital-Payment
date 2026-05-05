@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { paymentsService } from '../services/payments.service';
 import { sendSuccess, sendError, sendPaginated } from '../utils/response';
+import { generateReceiptPDF } from '../utils/pdfGenerator';
 
 export const paymentsController = {
   async recordCashPayment(req: Request, res: Response, next: NextFunction) {
@@ -38,10 +39,11 @@ export const paymentsController = {
   async getPaymentById(req: Request, res: Response, next: NextFunction) {
     try {
       const id = parseInt(req.params.id);
-      const payment = await paymentsService.getPaymentById(id);
+      const payment = await paymentsService.getPaymentById(id, req.user?.sub, req.user?.role);
       sendSuccess(res, payment, 'Payment retrieved');
     } catch (err) {
       if ((err as Error).message === 'Payment not found') return sendError(res, 'Payment not found', 404);
+      if ((err as Error).message === 'Access denied') return sendError(res, 'Access denied', 403);
       next(err);
     }
   },
@@ -76,7 +78,65 @@ export const paymentsController = {
         },
       });
       if (!receipt) return sendError(res, 'Receipt not found', 404);
+      // Ownership check — residents may only access their own receipts
+      if (req.user?.role === 'resident' && receipt.payment?.payerId !== req.user.sub) {
+        return sendError(res, 'Access denied', 403);
+      }
       sendSuccess(res, receipt, 'Receipt retrieved');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async downloadReceiptPDF(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      const receipt = await prisma.officialReceipt.findFirst({
+        where: { OR: [{ receiptId: id }, { orNumber: id }] },
+        include: {
+          payment: {
+            include: {
+              payer: { select: { firstName: true, lastName: true, email: true } },
+              method: true,
+              cashier: { select: { firstName: true, lastName: true } },
+            },
+          },
+          bill: { include: { items: true } },
+        },
+      });
+      if (!receipt) return sendError(res, 'Receipt not found', 404);
+      if (req.user?.role === 'resident' && receipt.payment?.payerId !== req.user.sub) {
+        return sendError(res, 'Access denied', 403);
+      }
+
+      const orData = receipt.orData as any;
+      const items = (orData?.items || receipt.bill?.items?.map((i: any) => ({
+        feeName: i.feeName,
+        amount: parseFloat(i.amount?.toString() || '0'),
+      }))) ?? [];
+
+      const pdfBuffer = await generateReceiptPDF({
+        orNumber: receipt.orNumber,
+        receiptId: receipt.receiptId,
+        payerName: receipt.payerName || `${receipt.payment?.payer?.firstName} ${receipt.payment?.payer?.lastName}`,
+        payerAddress: receipt.payerAddress || undefined,
+        billNumber: (receipt.bill as any)?.billNumber || orData?.billNumber || '',
+        paymentDate: receipt.issuedAt || receipt.createdAt,
+        paymentMethod: receipt.paymentMethod || 'N/A',
+        cashierName: receipt.payment?.cashier ? `${receipt.payment.cashier.firstName} ${receipt.payment.cashier.lastName}` : undefined,
+        terminalId: receipt.terminalId || undefined,
+        items,
+        subtotal: parseFloat(receipt.amountPaid.toString()),
+        penaltyAmount: orData?.penaltyAmount || 0,
+        discountAmount: orData?.discountAmount || 0,
+        totalAmount: parseFloat(receipt.amountPaid.toString()),
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="OR-${receipt.orNumber}.pdf"`);
+      res.send(pdfBuffer);
     } catch (err) {
       next(err);
     }
