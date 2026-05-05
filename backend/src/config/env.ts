@@ -7,7 +7,7 @@ export const env = {
 
   DATABASE_URL: process.env.DATABASE_URL || '',
 
-  JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_change_in_production',
+  JWT_SECRET: process.env.JWT_SECRET || '',
   JWT_EXPIRATION: parseInt(process.env.JWT_EXPIRATION || '3600', 10),
   REFRESH_TOKEN_EXPIRATION: parseInt(process.env.REFRESH_TOKEN_EXPIRATION || '604800', 10),
 
@@ -30,3 +30,15 @@ export const env = {
   SMS_API_KEY: process.env.SMS_API_KEY || '',
   SMS_SENDER_ID: process.env.SMS_SENDER_ID || 'MAJAYJAY',
 };
+
+// Validate critical env vars at startup
+const REQUIRED = ['DATABASE_URL', 'JWT_SECRET'] as const;
+for (const key of REQUIRED) {
+  if (!env[key]) {
+    if (env.NODE_ENV === 'production') {
+      throw new Error(`[env] Missing required environment variable: ${key}`);
+    } else {
+      console.warn(`[env] WARNING: ${key} is not set. This will cause failures in production.`);
+    }
+  }
+}
