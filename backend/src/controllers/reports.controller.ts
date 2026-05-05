@@ -25,4 +25,13 @@ export const reportsController = {
       next(err);
     }
   },
+
+  async getFullAnalytics(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await reportsService.getFullAnalytics();
+      sendSuccess(res, data, 'Analytics retrieved');
+    } catch (err) {
+      next(err);
+    }
+  },
 };
