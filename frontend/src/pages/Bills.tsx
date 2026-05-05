@@ -5,7 +5,7 @@ import {
   IconButton, Select, MenuItem, FormControl, InputLabel, Pagination, Chip,
   Table, TableHead, TableBody, TableRow, TableCell, CircularProgress, Alert,
 } from '@mui/material';
-import { Search, Add, Refresh, Visibility } from '@mui/icons-material';
+import { Search, Add, Refresh } from '@mui/icons-material';
 import { billsService } from '../services/bills.service';
 import { Bill } from '../types';
 import { formatCurrency, formatShortDate } from '../utils/formatters';
@@ -113,18 +113,22 @@ const Bills: React.FC = () => {
                       <TableCell align="right">Total</TableCell>
                       <TableCell align="right">Balance</TableCell>
                       <TableCell align="center">Status</TableCell>
-                      <TableCell align="center">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {bills.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={isResident ? 7 : 8} align="center" sx={{ py: 4, color: '#757575' }}>
+                        <TableCell colSpan={isResident ? 6 : 7} align="center" sx={{ py: 4, color: '#757575' }}>
                           No bills found
                         </TableCell>
                       </TableRow>
                     ) : bills.map((bill) => (
-                      <TableRow key={bill.id}>
+                      <TableRow
+                        key={bill.id}
+                        hover
+                        onClick={() => navigate(`/bills/${bill.id}`)}
+                        sx={{ cursor: 'pointer' }}
+                      >
                         <TableCell>
                           <Typography variant="body2" fontFamily="monospace" fontSize={12}>
                             {bill.billNumber}
@@ -153,11 +157,6 @@ const Bills: React.FC = () => {
                         </TableCell>
                         <TableCell align="center">
                           <StatusBadge status={bill.status} />
-                        </TableCell>
-                        <TableCell align="center">
-                          <IconButton size="small" onClick={() => navigate(`/bills/${bill.id}`)} title="View Details">
-                            <Visibility fontSize="small" />
-                          </IconButton>
                         </TableCell>
                       </TableRow>
                     ))}
