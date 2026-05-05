@@ -154,7 +154,7 @@ export const paymentsService = {
     return { payments, total };
   },
 
-  async getPaymentById(id: number) {
+  async getPaymentById(id: number, currentUserId?: number, userRole?: string) {
     const payment = await prisma.payment.findUnique({
       where: { id },
       include: {
@@ -166,6 +166,9 @@ export const paymentsService = {
       },
     });
     if (!payment) throw new Error('Payment not found');
+    if (userRole === 'resident' && currentUserId !== payment.payerId) {
+      throw new Error('Access denied');
+    }
     return payment;
   },
 
