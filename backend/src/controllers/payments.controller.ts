@@ -60,6 +60,18 @@ export const paymentsController = {
     }
   },
 
+  async generatePaymentQR(req: Request, res: Response, next: NextFunction) {
+    try {
+      const paymentId = parseInt(req.params.id);
+      if (!paymentId) return sendError(res, 'Payment ID required', 400);
+      const result = await paymentsService.generateQRForPayment(paymentId);
+      sendSuccess(res, result, 'Payment QR generated');
+    } catch (err) {
+      if ((err as Error).message === 'Payment not found') return sendError(res, 'Payment not found', 404);
+      next(err);
+    }
+  },
+
   async getReceipt(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
