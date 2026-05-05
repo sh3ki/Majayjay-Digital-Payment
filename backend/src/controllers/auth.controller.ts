@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service';
 import { sendSuccess, sendError } from '../utils/response';
+import prisma from '../config/database';
 
 export const authController = {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -26,6 +27,9 @@ export const authController = {
     } catch (err) {
       if ((err as Error).message === 'Invalid credentials') {
         return sendError(res, 'Invalid email or password', 401);
+      }
+      if ((err as Error).message.includes('locked')) {
+        return sendError(res, (err as Error).message, 429);
       }
       if ((err as Error).message.includes('inactive')) {
         return sendError(res, 'Account is inactive or suspended', 403);
@@ -80,6 +84,19 @@ export const authController = {
     }
   },
 
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { token, newPassword } = req.body;
+      await authService.resetPassword(token, newPassword);
+      sendSuccess(res, null, 'Password reset successfully');
+    } catch (err) {
+      if ((err as Error).message.includes('Invalid or expired')) {
+        return sendError(res, 'Invalid or expired reset token', 400);
+      }
+      next(err);
+    }
+  },
+
   async getMe(req: Request, res: Response, next: NextFunction) {
     try {
       const { PrismaClient } = await import('@prisma/client');
@@ -88,7 +105,8 @@ export const authController = {
         where: { id: req.user!.sub },
         select: {
           id: true, email: true, firstName: true, lastName: true,
-          contactNumber: true, status: true, emailVerified: true,
+          middleName: true, contactNumber: true, address: true, barangay: true,
+          status: true, emailVerified: true,
           lastLoginAt: true, createdAt: true,
           role: { select: { roleName: true, description: true } },
           department: { select: { id: true, departmentName: true } },
@@ -96,6 +114,27 @@ export const authController = {
       });
       if (!user) return sendError(res, 'User not found', 404);
       sendSuccess(res, user, 'User profile retrieved');
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { firstName, lastName, contactNumber, middleName, address, barangay } = req.body;
+      const user = await prisma.user.update({
+        where: { id: req.user!.sub },
+        data: { firstName, lastName, contactNumber, middleName, address, barangay },
+        select: {
+          id: true, email: true, firstName: true, lastName: true,
+          middleName: true, contactNumber: true, address: true, barangay: true,
+          status: true, emailVerified: true,
+          lastLoginAt: true, createdAt: true,
+          role: { select: { roleName: true, description: true } },
+          department: { select: { id: true, departmentName: true } },
+        },
+      });
+      sendSuccess(res, user, 'Profile updated');
     } catch (err) {
       next(err);
     }
