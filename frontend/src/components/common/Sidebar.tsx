@@ -1,140 +1,256 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
-  Divider, Box, Typography, Avatar,
+  Box, Typography, Avatar, Tooltip, Divider, Drawer,
+  IconButton,
 } from '@mui/material';
 import {
   Dashboard, Receipt, Payment, BarChart, People, Settings,
   AccountBalance, ListAlt, Security, Business, MonetizationOn,
+  Category, ChevronLeft, ChevronRight,
 } from '@mui/icons-material';
 import { useAuth } from '../../hooks/useAuth';
 
-const DRAWER_WIDTH = 256;
+export const SIDEBAR_EXPANDED = 256;
+export const SIDEBAR_COLLAPSED = 64;
 
 interface NavItem {
   label: string;
   path: string;
   icon: React.ReactElement;
   roles: string[];
+  section?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: <Dashboard />, roles: ['admin', 'cashier', 'department_viewer', 'resident'] },
-  { label: 'My Bills', path: '/bills', icon: <Receipt />, roles: ['resident', 'admin', 'cashier', 'department_viewer'] },
-  { label: 'Payments', path: '/payments', icon: <Payment />, roles: ['admin', 'cashier', 'department_viewer', 'resident'] },
-  { label: 'Cashier Terminal', path: '/cashier', icon: <AccountBalance />, roles: ['cashier', 'admin'] },
-  { label: 'Reports', path: '/reports', icon: <BarChart />, roles: ['admin', 'cashier', 'department_viewer'] },
-  { label: 'Audit Logs', path: '/admin/audit-logs', icon: <Security />, roles: ['admin'] },
-  { label: 'User Management', path: '/admin/users', icon: <People />, roles: ['admin'] },
-  { label: 'Fee Management', path: '/admin/fees', icon: <MonetizationOn />, roles: ['admin'] },
-  { label: 'Penalty Rules', path: '/admin/penalty-rules', icon: <Settings />, roles: ['admin'] },
-  { label: 'Departments', path: '/admin/departments', icon: <Business />, roles: ['admin'] },
-  { label: 'Transaction Ledger', path: '/admin/ledger', icon: <ListAlt />, roles: ['admin'] },
+  // General
+  { label: 'Dashboard',          path: '/dashboard',              icon: <Dashboard />,      roles: ['admin','cashier','department_viewer','resident'],  section: 'General' },
+  { label: 'Bills',              path: '/bills',                  icon: <Receipt />,         roles: ['resident','admin','cashier','department_viewer'], section: 'General' },
+  { label: 'Payments',           path: '/payments',               icon: <Payment />,         roles: ['admin','cashier','department_viewer','resident'],  section: 'General' },
+  { label: 'Cashier Terminal',   path: '/cashier',                icon: <AccountBalance />,  roles: ['cashier','admin'],                                section: 'General' },
+  { label: 'Reports',            path: '/reports',                icon: <BarChart />,        roles: ['admin','cashier','department_viewer'],             section: 'General' },
+  // Financial Management
+  { label: 'Fee Management',     path: '/admin/fees',             icon: <MonetizationOn />,  roles: ['admin'], section: 'Financial Management' },
+  { label: 'Fee Categories',     path: '/admin/fee-categories',   icon: <Category />,        roles: ['admin'], section: 'Financial Management' },
+  { label: 'Penalty Rules',      path: '/admin/penalty-rules',    icon: <Settings />,        roles: ['admin'], section: 'Financial Management' },
+  { label: 'Departments',        path: '/admin/departments',      icon: <Business />,        roles: ['admin'], section: 'Financial Management' },
+  { label: 'Transaction Ledger', path: '/admin/ledger',           icon: <ListAlt />,         roles: ['admin'], section: 'Financial Management' },
+  // Administration
+  { label: 'User Management',    path: '/admin/users',            icon: <People />,          roles: ['admin'], section: 'Administration' },
+  { label: 'Audit Logs',         path: '/admin/audit-logs',       icon: <Security />,        roles: ['admin'], section: 'Administration' },
 ];
 
 interface Props {
-  open: boolean;
-  onClose: () => void;
-  variant?: 'permanent' | 'temporary';
+  collapsed: boolean;
+  onToggle: () => void;
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 }
 
-const Sidebar: React.FC<Props> = ({ open, onClose, variant = 'permanent' }) => {
+const SidebarContent: React.FC<{ collapsed: boolean; onToggle: () => void; onNav: (path: string) => void }> = ({
+  collapsed, onToggle, onNav,
+}) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-  const rawRole = typeof user?.role === 'string' ? user.role : user?.role?.roleName || '';
+  const rawRole = typeof user?.role === 'string' ? user.role : (user?.role as { roleName?: string })?.roleName || '';
   const userRole = rawRole.toLowerCase();
-  const isPermanent = variant === 'permanent';
 
-  const filteredItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
+  const filtered = NAV_ITEMS
+    .filter((i) => i.roles.includes(userRole))
+    .map((i) => {
+      if (i.path === '/bills') return { ...i, label: userRole === 'resident' ? 'My Bills' : 'Bills' };
+      if (i.path === '/payments') return { ...i, label: userRole === 'resident' ? 'My Payments' : 'Payments' };
+      return i;
+    });
+  const sections = [...new Set(filtered.map((i) => i.section))];
 
-  const handleNav = (path: string) => {
-    navigate(path);
-    if (variant === 'temporary') onClose();
-  };
-
-  const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Logo */}
-      <Box sx={{ p: 3, background: '#0D47A1', color: 'white', textAlign: 'center' }}>
-        <Typography variant="h6" fontWeight={700} fontSize={14}>
-          Majayjay Digital
-        </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.8, fontSize: 11, mt: 0.5 }}>
-          Payment System
-        </Typography>
-      </Box>
-
-      {/* User info */}
-      {user && (
-        <Box sx={{ p: 2, background: '#E3F2FD', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar sx={{ bgcolor: '#1565C0', width: 36, height: 36, fontSize: 14 }}>
-            {user.firstName[0]}{user.lastName[0]}
-          </Avatar>
+  return (
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#0D47A1',
+        overflow: 'hidden',
+        transition: 'width 0.2s ease',
+        width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
+      }}
+    >
+      {/* Logo + toggle */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'space-between',
+          px: collapsed ? 0 : 2,
+          py: 1.5,
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          minHeight: 56,
+        }}
+      >
+        {!collapsed && (
           <Box>
-            <Typography variant="body2" fontWeight={600} color="#0D47A1" fontSize={13}>
-              {user.firstName} {user.lastName}
+            <Typography variant="subtitle1" fontWeight={800} color="white" fontSize={13} lineHeight={1.2}>
+              Majayjay
             </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-              {userRole.replace('_', ' ')}
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: 10 }}>
+              Digital Payment System
             </Typography>
           </Box>
+        )}
+        <IconButton onClick={onToggle} size="small" sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
+          {collapsed ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />}
+        </IconButton>
+      </Box>
+
+      {/* User badge */}
+      {user && (
+        <Box
+          sx={{
+            px: collapsed ? 0 : 2, py: 1.5,
+            display: 'flex', alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            gap: 1.5,
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <Tooltip title={collapsed ? `${user.firstName} ${user.lastName}\n${userRole.replace('_', ' ')}` : ''} placement="right">
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.15)', width: 34, height: 34, fontSize: 13, border: '2px solid rgba(255,255,255,0.3)', flexShrink: 0 }}>
+              {user.firstName[0]}{user.lastName[0]}
+            </Avatar>
+          </Tooltip>
+          {!collapsed && (
+            <Box sx={{ overflow: 'hidden' }}>
+              <Typography variant="body2" fontWeight={700} color="white" fontSize={12} noWrap>
+                {user.firstName} {user.lastName}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', textTransform: 'capitalize', fontSize: 10 }}>
+                {userRole.replace('_', ' ')}
+              </Typography>
+            </Box>
+          )}
         </Box>
       )}
 
-      <Divider />
-
-      {/* Navigation */}
-      <List sx={{ flex: 1, py: 1 }}>
-        {filteredItems.map((item) => {
-          const isActive = location.pathname === item.path;
+      {/* Nav */}
+      <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', py: 1, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(255,255,255,0.2)', borderRadius: 2 } }}>
+        {sections.map((section) => {
+          const items = filtered.filter((i) => i.section === section);
           return (
-            <ListItem key={item.path} disablePadding>
-              <ListItemButton
-                onClick={() => handleNav(item.path)}
-                sx={{
-                  mx: 1, borderRadius: 1, mb: 0.5,
-                  backgroundColor: isActive ? '#E3F2FD' : 'transparent',
-                  borderLeft: isActive ? '4px solid #1565C0' : '4px solid transparent',
-                  '&:hover': { backgroundColor: '#E3F2FD' },
-                  color: isActive ? '#0D47A1' : '#424242',
-                }}
-              >
-                <ListItemIcon sx={{ color: isActive ? '#1565C0' : '#757575', minWidth: 40 }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.label}
-                  primaryTypographyProps={{ fontSize: 14, fontWeight: isActive ? 600 : 400 }}
-                />
-              </ListItemButton>
-            </ListItem>
+            <Box key={section}>
+              {!collapsed && (
+                <Typography
+                  variant="caption"
+                  sx={{ px: 2, py: 0.5, display: 'block', color: 'rgba(255,255,255,0.4)', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}
+                >
+                  {section}
+                </Typography>
+              )}
+              {collapsed && section !== sections[0] && <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 0.5 }} />}
+              {items.map((item) => {
+                const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
+                return (
+                  <Tooltip key={item.path} title={collapsed ? item.label : ''} placement="right" arrow>
+                    <Box
+                      onClick={() => onNav(item.path)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        mx: 1,
+                        my: 0.25,
+                        px: collapsed ? 0 : 1.5,
+                        py: 1,
+                        borderRadius: 1.5,
+                        cursor: 'pointer',
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        bgcolor: isActive ? 'rgba(255,255,255,0.18)' : 'transparent',
+                        borderLeft: isActive && !collapsed ? '3px solid #90CAF9' : '3px solid transparent',
+                        transition: 'all 0.15s ease',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+                      }}
+                    >
+                      <Box sx={{ color: isActive ? '#90CAF9' : 'rgba(255,255,255,0.7)', display: 'flex', flexShrink: 0, '& svg': { fontSize: 20 } }}>
+                        {item.icon}
+                      </Box>
+                      {!collapsed && (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: isActive ? 'white' : 'rgba(255,255,255,0.75)',
+                            fontWeight: isActive ? 700 : 400,
+                            fontSize: 13,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {item.label}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Tooltip>
+                );
+              })}
+            </Box>
           );
         })}
-      </List>
+      </Box>
+
+      {/* Footer */}
+      {!collapsed && (
+        <Box sx={{ px: 2, py: 1.5, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 10 }}>
+            © 2026 LGU Majayjay, Laguna
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
+};
+
+const Sidebar: React.FC<Props> = ({ collapsed, onToggle, mobileOpen = false, onMobileClose }) => {
+  const navigate = useNavigate();
+
+  const handleNav = (path: string) => {
+    navigate(path);
+    if (onMobileClose) onMobileClose();
+  };
 
   return (
-    <Drawer
-      variant={variant}
-      open={open}
-      onClose={onClose}
-      sx={{
-        width: DRAWER_WIDTH,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: DRAWER_WIDTH,
-          boxSizing: 'border-box',
-          border: 'none',
-          boxShadow: '2px 0 4px rgba(0,0,0,0.08)',
-          position: isPermanent ? 'relative' : 'fixed',
-        },
-      }}
-    >
-      {drawer}
-    </Drawer>
+    <>
+      {/* Desktop: fixed sidebar */}
+      <Box
+        sx={{
+          display: { xs: 'none', md: 'flex' },
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '100vh',
+          zIndex: 1200,
+          flexShrink: 0,
+          width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
+          transition: 'width 0.2s ease',
+          boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
+        }}
+      >
+        <SidebarContent collapsed={collapsed} onToggle={onToggle} onNav={handleNav} />
+      </Box>
+
+      {/* Mobile: temporary drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onMobileClose}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { width: SIDEBAR_EXPANDED, border: 'none' },
+        }}
+      >
+        <SidebarContent collapsed={false} onToggle={onToggle} onNav={handleNav} />
+      </Drawer>
+    </>
   );
 };
 
