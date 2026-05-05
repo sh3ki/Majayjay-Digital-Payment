@@ -81,6 +81,130 @@ export const paymongoController = {
       next(err);
     }
   },
+
+  /**
+   * Confirm payment for a bill — checks intent status and processes if source is chargeable.
+   * Called by the success page to handle cases where webhooks haven't fired yet.
+   * POST /api/v1/paymongo/confirm
+   */
+  async confirmPayment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { billId } = req.body as { billId: number };
+      if (!billId) return sendError(res, 'billId required', 400);
+
+      // Check if the bill is already paid
+      const bill = await prisma.bill.findUnique({
+        where: { id: billId },
+        include: { payer: true, items: true },
+      });
+      if (!bill) return sendError(res, 'Bill not found', 404);
+
+      if (bill.status === 'PAID') {
+        const latestPayment = await prisma.payment.findFirst({
+          where: { billId },
+          orderBy: { createdAt: 'desc' },
+          include: { receipt: true },
+        });
+        return sendSuccess(res, { status: 'paid', payment: latestPayment }, 'Bill already paid');
+      }
+
+      // Find latest pending intent for this bill
+      const intent = await prisma.paymentIntent.findFirst({
+        where: { billId, status: { in: ['pending', 'processing'] } },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!intent) {
+        return sendSuccess(res, { status: 'pending', payment: null }, 'No pending payment intent found');
+      }
+
+      // Poll PayMongo source status
+      let source: any;
+      try {
+        source = await paymongoService.retrieveSource(intent.paymongoPaymentIntentId);
+      } catch {
+        return sendSuccess(res, { status: 'pending' }, 'Could not retrieve source status');
+      }
+
+      const sourceStatus = source?.attributes?.status;
+      if (sourceStatus !== 'chargeable') {
+        return sendSuccess(res, { status: sourceStatus || 'pending' }, 'Payment not yet chargeable');
+      }
+
+      // Source is chargeable — check if payment already exists from webhook
+      const existingPayment = await prisma.payment.findFirst({
+        where: { billId, paymongoPaymentIntentId: intent.paymongoPaymentIntentId },
+      });
+      if (existingPayment) {
+        return sendSuccess(res, { status: 'paid', payment: existingPayment }, 'Payment already processed');
+      }
+
+      // Process the payment (same logic as webhook)
+      const pmPayment = await paymongoService.createPayment(
+        intent.paymongoPaymentIntentId,
+        parseFloat(intent.amount.toString()),
+        `Bill ${bill.billNumber}`,
+      );
+
+      const methodName = intent.paymentMethod === 'gcash' ? 'GCash' : 'Maya';
+      let paymentMethod = await prisma.paymentMethod.findUnique({ where: { methodName } });
+      if (!paymentMethod) {
+        paymentMethod = await prisma.paymentMethod.create({
+          data: { methodName, provider: 'PayMongo', isActive: true },
+        });
+      }
+
+      const transactionId = generateTransactionId();
+      const orNumber = generateOrNumber();
+      const amount = parseFloat(intent.amount.toString());
+
+      const payment = await prisma.payment.create({
+        data: {
+          transactionId, billId, payerId: intent.payerId,
+          amount: intent.amount, paymentMethodId: paymentMethod.id,
+          status: 'PAID', paymongoPaymentIntentId: intent.paymongoPaymentIntentId,
+          paymongoSourceId: pmPayment.id, paymentDate: new Date(), verifiedAt: new Date(),
+        },
+      });
+
+      const newPaidAmount = parseFloat(bill.paidAmount.toString()) + amount;
+      const newBalance = parseFloat(bill.totalAmount.toString()) - newPaidAmount;
+      const newStatus = newBalance <= 0 ? 'PAID' : 'PARTIALLY_PAID';
+
+      await prisma.bill.update({
+        where: { id: billId },
+        data: { paidAmount: newPaidAmount, balanceAmount: Math.max(0, newBalance), status: newStatus },
+      });
+
+      const receiptData = buildReceiptData({
+        orNumber, receiptId: '',
+        payerFirstName: bill.payer.firstName, payerLastName: bill.payer.lastName,
+        billNumber: bill.billNumber,
+        items: bill.items.map((i) => ({ feeName: i.feeName, amount: parseFloat(i.amount.toString()) })),
+        totalAmount: amount, penaltyAmount: parseFloat(bill.penaltyAmount.toString()),
+        discountAmount: parseFloat(bill.discountAmount.toString()), paymentMethod: methodName,
+      });
+
+      const receipt = await prisma.officialReceipt.create({
+        data: {
+          orNumber, paymentId: payment.id, billId, amountPaid: amount,
+          paymentMethod: methodName, payerName: `${bill.payer.firstName} ${bill.payer.lastName}`,
+          issuedAt: new Date(), orData: receiptData as unknown as any, status: 'GENERATED',
+        },
+      });
+
+      await prisma.paymentIntent.update({
+        where: { id: intent.id },
+        data: { status: 'paid', paidAt: new Date() },
+      });
+
+      logger.info(`[paymongo confirm] Payment processed: ${transactionId} for bill ${bill.billNumber}`);
+      sendSuccess(res, { status: 'paid', payment, receipt, orNumber }, 'Payment confirmed and processed');
+    } catch (err) {
+      logger.error(`[paymongo confirm] Error: ${(err as Error).message}`);
+      next(err);
+    }
+  },
 };
 
 /**
