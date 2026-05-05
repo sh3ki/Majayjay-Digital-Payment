@@ -26,13 +26,20 @@ const changePasswordSchema = Joi.object({
   newPassword: Joi.string().min(8).required(),
 });
 
+const resetPasswordSchema = Joi.object({
+  token: Joi.string().required(),
+  newPassword: Joi.string().min(8).required(),
+});
+
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
 router.post('/logout', authenticate, authController.logout);
 router.post('/refresh-token', authController.refreshToken);
 router.post('/forgot-password', authLimiter, authController.forgotPassword);
+router.post('/reset-password', authLimiter, validate(resetPasswordSchema), authController.resetPassword);
 router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);
 router.get('/me', authenticate, authController.getMe);
+router.put('/profile', authenticate, authController.updateProfile);
 
 // Google OAuth callback
 router.get('/google-callback', oauthController.googleCallback);
