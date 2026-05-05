@@ -6,6 +6,8 @@ import * as paymentsRoutesModule from './payments.routes';
 import * as dashboardRoutesModule from './dashboard.routes';
 import * as reportsRoutesModule from './reports.routes';
 import * as adminRoutesModule from './admin.routes';
+import * as paymongoRoutesModule from './paymongo.routes';
+import * as notificationsRoutesModule from './notifications.routes';
 
 // Support both default and named exports from route modules
 const authRoutes = (authRoutesModule as any).default ?? authRoutesModule;
@@ -15,6 +17,8 @@ const paymentsRoutes = (paymentsRoutesModule as any).default ?? paymentsRoutesMo
 const dashboardRoutes = (dashboardRoutesModule as any).default ?? dashboardRoutesModule;
 const reportsRoutes = (reportsRoutesModule as any).default ?? reportsRoutesModule;
 const adminRoutes = (adminRoutesModule as any).default ?? adminRoutesModule;
+const paymongoRoutes = (paymongoRoutesModule as any).default ?? paymongoRoutesModule;
+const notificationsRoutes = (notificationsRoutesModule as any).default ?? notificationsRoutesModule;
 
 const router = Router();
 
@@ -29,5 +33,7 @@ router.use('/payments', paymentsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/paymongo', paymongoRoutes);
+router.use('/notifications', notificationsRoutes);
 
 export default router;
