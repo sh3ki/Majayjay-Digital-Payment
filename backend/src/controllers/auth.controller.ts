@@ -23,6 +23,9 @@ export const authController = {
         req.ip,
         req.headers['user-agent']
       );
+      if ('requiresVerification' in result && result.requiresVerification) {
+        return sendSuccess(res, { requiresVerification: true, userId: result.userId }, 'Email verification required');
+      }
       sendSuccess(res, result, 'Login successful');
     } catch (err) {
       if ((err as Error).message === 'Invalid credentials') {
@@ -136,6 +139,40 @@ export const authController = {
       });
       sendSuccess(res, user, 'Profile updated');
     } catch (err) {
+      next(err);
+    }
+  },
+
+  async verifyOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId, otp } = req.body;
+      const result = await authService.verifyOtp(
+        Number(userId),
+        String(otp),
+        req.ip,
+        req.headers['user-agent']
+      );
+      sendSuccess(res, result, 'Email verified successfully');
+    } catch (err) {
+      if ((err as Error).message === 'Invalid OTP') {
+        return sendError(res, 'Invalid verification code', 400);
+      }
+      if ((err as Error).message.includes('expired')) {
+        return sendError(res, 'Verification code expired. Please request a new one.', 400);
+      }
+      next(err);
+    }
+  },
+
+  async resendOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.body;
+      await authService.resendOtp(Number(userId));
+      sendSuccess(res, null, 'Verification code resent to your email');
+    } catch (err) {
+      if ((err as Error).message === 'Email already verified') {
+        return sendError(res, 'Email already verified', 400);
+      }
       next(err);
     }
   },
