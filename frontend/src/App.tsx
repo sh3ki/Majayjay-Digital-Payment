@@ -14,6 +14,7 @@ import AuthCallback from './pages/AuthCallback';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import Dashboard from './pages/Dashboard';
 import Bills from './pages/Bills';
 import CreateBill from './pages/CreateBill';
@@ -59,6 +60,7 @@ const App: React.FC = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/payment-failed" element={<PaymentFailed />} />
 
