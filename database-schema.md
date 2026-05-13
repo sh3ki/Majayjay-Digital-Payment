@@ -883,6 +883,20 @@ model Session {
   @@index([token])
 }
 
+// Email OTP Verification
+model EmailVerificationOtp {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  otpHash   String    // bcrypt hash of the 6-digit OTP
+  expiresAt DateTime  // 10-minute expiry
+  usedAt    DateTime? // set when consumed
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 // Department Management
 model Department {
   id              Int     @id @default(autoincrement())
