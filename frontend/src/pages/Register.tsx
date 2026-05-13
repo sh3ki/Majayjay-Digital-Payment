@@ -12,6 +12,9 @@ import {
   Visibility, VisibilityOff,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../store';
+import { setPendingVerificationUserId } from '../store/slices/authSlice';
 import { RegisterDto } from '../types';
 
 const GRADIENT = 'linear-gradient(135deg, #0D47A1 0%, #1565C0 60%, #1976D2 100%)';
@@ -34,6 +37,7 @@ type FormData = z.infer<typeof schema>;
 
 const Register: React.FC = () => {
   const { register: registerUser, isLoading, error, clear } = useAuth();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -55,8 +59,15 @@ const Register: React.FC = () => {
     };
     const result = await registerUser(dto);
     if ((result as { type: string }).type === 'auth/register/fulfilled') {
-      setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000);
+      const payload = (result as { payload?: { data?: { id?: number } } }).payload;
+      const userId = payload?.data?.id;
+      if (userId) {
+        dispatch(setPendingVerificationUserId(userId));
+        navigate('/verify-email', { replace: true });
+      } else {
+        setSuccess(true);
+        setTimeout(() => navigate('/login'), 2000);
+      }
     }
   };
 
