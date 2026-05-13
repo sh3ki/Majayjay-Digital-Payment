@@ -8,12 +8,29 @@ export const authService = {
       accessToken: string;
       refreshToken: string;
       expiresIn: number;
+      requiresVerification?: boolean;
+      userId?: number;
     }>>('/auth/login', dto);
     return data;
   },
 
   async register(dto: RegisterDto) {
     const { data } = await api.post<ApiResponse>('/auth/register', dto);
+    return data;
+  },
+
+  async verifyOtp(userId: number, otp: string) {
+    const { data } = await api.post<ApiResponse<{
+      user: User;
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    }>>('/auth/verify-otp', { userId, otp });
+    return data;
+  },
+
+  async resendOtp(userId: number) {
+    const { data } = await api.post<ApiResponse>('/auth/resend-otp', { userId });
     return data;
   },
 
