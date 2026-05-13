@@ -49,7 +49,7 @@ To provide a comprehensive, digitized payment collection system for the Local Go
   - Email address
   - Password (min 8 characters, mix of uppercase, lowercase, numbers, special chars)
   - User role selection
-- Email verification via verification link
+- Email verification via 6-digit OTP (sent on registration and on first login if unverified)
 - Terms and conditions acceptance
 - Security questions setup (optional backup)
 
