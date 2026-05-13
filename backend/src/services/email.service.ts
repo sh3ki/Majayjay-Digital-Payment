@@ -116,6 +116,26 @@ export const emailService = {
         </div>`,
     });
   },
+
+  async sendOtpVerification(to: string, firstName: string, otp: string) {
+    await transporter.sendMail({
+      from: FROM,
+      to,
+      subject: 'Verify Your Email — Majayjay LGU',
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px">
+          <h2 style="color:#0D47A1">Email Verification</h2>
+          <p>Hi ${firstName},</p>
+          <p>Use the 6-digit code below to verify your email address. This code expires in <strong>10 minutes</strong>.</p>
+          <div style="text-align:center;margin:32px 0">
+            <span style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#0D47A1;background:#E3F2FD;padding:16px 24px;border-radius:8px;display:inline-block">${otp}</span>
+          </div>
+          <p>If you did not create an account, you can safely ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin-top:32px">
+          <p style="color:#9E9E9E;font-size:12px">Majayjay, Laguna LGU Billing System</p>
+        </div>`,
+    });
+  },
 };
 
 // Verify transporter at startup (non-blocking)
