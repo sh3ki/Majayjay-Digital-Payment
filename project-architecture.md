@@ -230,23 +230,40 @@ This document outlines the technical architecture for the LGU Digital Payment & 
 └─────────────────────────────────────────────────────────┘
 
 1. User Registration
-   └─→ Email/Password or Google OAuth
-       └─→ Email Verification
-           └─→ User Account Created
+   └─→ Email/Password submitted
+       └─→ Account created (emailVerified = false)
+           └─→ 6-digit OTP sent to email (10-min expiry)
+               └─→ User redirected to /verify-email page
+                   └─→ OTP verified → emailVerified = true
+                       └─→ Session created, tokens issued
 
-2. User Login
+2. User Login (existing unverified account)
    └─→ Credentials Validated
-       └─→ JWT Token Generated
-           └─→ Refresh Token Stored in DB
-               └─→ Access Token Sent to Frontend
+       └─→ emailVerified check
+           ├─→ NOT verified: fresh OTP sent → requiresVerification returned
+           │       └─→ Frontend redirects to /verify-email
+           └─→ Verified: JWT Token Generated
+               └─→ Refresh Token Stored in DB
+                   └─→ Access Token Sent to Frontend
 
-3. API Request
+3. Email OTP Verification
+   └─→ POST /auth/verify-otp { userId, otp }
+       └─→ OTP hash validated (bcrypt)
+           └─→ emailVerified = true, usedAt set
+               └─→ Session created, tokens returned
+
+4. Resend OTP
+   └─→ POST /auth/resend-otp { userId }
+       └─→ Previous OTPs invalidated
+           └─→ New OTP sent to email
+
+5. API Request
    └─→ Authorization Header (Bearer Token)
        └─→ Token Verified
            └─→ User Permissions Checked
                └─→ Request Processed
 
-4. Token Refresh
+6. Token Refresh
    └─→ Refresh Token Validated
        └─→ New Access Token Generated
            └─→ User Session Extended
