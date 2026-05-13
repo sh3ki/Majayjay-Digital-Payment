@@ -26,7 +26,7 @@ const schema = z.object({
 });
 
 const Login: React.FC = () => {
-  const { login, isAuthenticated, isLoading, error, clear } = useAuth();
+  const { login, isAuthenticated, isLoading, error, clear, pendingVerificationUserId } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = React.useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -39,6 +39,11 @@ const Login: React.FC = () => {
     if (isAuthenticated) navigate('/dashboard', { replace: true });
     return () => { clear(); };
   }, [isAuthenticated]);
+
+  // Redirect to verify-email page when login returns requiresVerification
+  useEffect(() => {
+    if (pendingVerificationUserId) navigate('/verify-email', { replace: true });
+  }, [pendingVerificationUserId]);
 
   const onSubmit = (data: LoginDto) => login(data);
 
