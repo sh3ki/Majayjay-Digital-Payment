@@ -9,6 +9,7 @@ const initialState: AuthState = {
   isAuthenticated: !!localStorage.getItem('accessToken'),
   isLoading: false,
   error: null,
+  pendingVerificationUserId: null,
 };
 
 export const loginAsync = createAsyncThunk('auth/login', async (dto: LoginDto, { rejectWithValue }) => {
@@ -25,6 +26,28 @@ export const loginAsync = createAsyncThunk('auth/login', async (dto: LoginDto, {
 export const registerAsync = createAsyncThunk('auth/register', async (dto: RegisterDto, { rejectWithValue }) => {
   try {
     const res = await authService.register(dto);
+    if (!res.success) throw new Error(res.message);
+    return res;
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || (err as Error).message;
+    return rejectWithValue(msg);
+  }
+});
+
+export const verifyOtpAsync = createAsyncThunk('auth/verifyOtp', async ({ userId, otp }: { userId: number; otp: string }, { rejectWithValue }) => {
+  try {
+    const res = await authService.verifyOtp(userId, otp);
+    if (!res.success || !res.data) throw new Error(res.message);
+    return res.data;
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || (err as Error).message;
+    return rejectWithValue(msg);
+  }
+});
+
+export const resendOtpAsync = createAsyncThunk('auth/resendOtp', async (userId: number, { rejectWithValue }) => {
+  try {
+    const res = await authService.resendOtp(userId);
     if (!res.success) throw new Error(res.message);
     return res;
   } catch (err: unknown) {
@@ -56,6 +79,9 @@ const authSlice = createSlice({
   reducers: {
     clearError(state) { state.error = null; },
     setUser(state, action: PayloadAction<User>) { state.user = action.payload; },
+    setPendingVerificationUserId(state, action: PayloadAction<number | null>) {
+      state.pendingVerificationUserId = action.payload;
+    },
     setTokens(state, action: PayloadAction<{ accessToken: string; refreshToken: string }>) {
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
@@ -69,12 +95,16 @@ const authSlice = createSlice({
       .addCase(loginAsync.pending, (state) => { state.isLoading = true; state.error = null; })
       .addCase(loginAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
-        state.isAuthenticated = true;
-        localStorage.setItem('accessToken', action.payload.accessToken);
-        localStorage.setItem('refreshToken', action.payload.refreshToken);
+        if (action.payload.requiresVerification) {
+          state.pendingVerificationUserId = action.payload.userId ?? null;
+        } else {
+          state.user = action.payload.user!;
+          state.accessToken = action.payload.accessToken!;
+          state.refreshToken = action.payload.refreshToken!;
+          state.isAuthenticated = true;
+          localStorage.setItem('accessToken', action.payload.accessToken!);
+          localStorage.setItem('refreshToken', action.payload.refreshToken!);
+        }
       })
       .addCase(loginAsync.rejected, (state, action) => {
         state.isLoading = false;
@@ -86,6 +116,27 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+      .addCase(verifyOtpAsync.pending, (state) => { state.isLoading = true; state.error = null; })
+      .addCase(verifyOtpAsync.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.pendingVerificationUserId = null;
+        localStorage.setItem('accessToken', action.payload.accessToken);
+        localStorage.setItem('refreshToken', action.payload.refreshToken);
+      })
+      .addCase(verifyOtpAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(resendOtpAsync.pending, (state) => { state.isLoading = true; state.error = null; })
+      .addCase(resendOtpAsync.fulfilled, (state) => { state.isLoading = false; })
+      .addCase(resendOtpAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
       .addCase(fetchMeAsync.pending, (state) => { state.isLoading = true; })
       .addCase(fetchMeAsync.fulfilled, (state, action) => {
         state.isLoading = false;
@@ -93,7 +144,6 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
       })
       .addCase(fetchMeAsync.rejected, (state) => {
-        // Token was invalid/expired — clear auth state; ProtectedRoute will handle gating
         state.isLoading = false;
         state.user = null;
         state.accessToken = null;
@@ -107,9 +157,10 @@ const authSlice = createSlice({
         state.accessToken = null;
         state.refreshToken = null;
         state.isAuthenticated = false;
+        state.pendingVerificationUserId = null;
       });
   },
 });
 
-export const { clearError, setUser, setTokens } = authSlice.actions;
+export const { clearError, setUser, setTokens, setPendingVerificationUserId } = authSlice.actions;
 export default authSlice.reducer;
