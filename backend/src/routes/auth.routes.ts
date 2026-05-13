@@ -31,8 +31,19 @@ const resetPasswordSchema = Joi.object({
   newPassword: Joi.string().min(8).required(),
 });
 
+const verifyOtpSchema = Joi.object({
+  userId: Joi.number().integer().required(),
+  otp: Joi.string().length(6).pattern(/^\d+$/).required(),
+});
+
+const resendOtpSchema = Joi.object({
+  userId: Joi.number().integer().required(),
+});
+
 router.post('/register', authLimiter, validate(registerSchema), authController.register);
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
+router.post('/verify-otp', authLimiter, validate(verifyOtpSchema), authController.verifyOtp);
+router.post('/resend-otp', authLimiter, validate(resendOtpSchema), authController.resendOtp);
 router.post('/logout', authenticate, authController.logout);
 router.post('/refresh-token', authController.refreshToken);
 router.post('/forgot-password', authLimiter, authController.forgotPassword);
