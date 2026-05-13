@@ -174,8 +174,9 @@ model User {
   payerBills         Bill[]            @relation("billPayer")
   payments           Payment[]         @relation("payerPayments")
   cashierPayments    Payment[]         @relation("cashierPayments")
-  passwordResetTokens PasswordResetToken[]
-  cashierSessions    CashierSession[]  @relation("cashierSessions")
+  passwordResetTokens   PasswordResetToken[]
+  cashierSessions        CashierSession[]       @relation("cashierSessions")
+  emailVerificationOtps  EmailVerificationOtp[]
 
   @@index([email])
   @@index([roleId])
@@ -512,6 +513,20 @@ model PasswordResetToken {
   @@index([token])
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+model EmailVerificationOtp {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  otpHash   String    @map("otp_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_otps")
 }
 
 model PaymentIntent {
