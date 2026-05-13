@@ -8,6 +8,8 @@ import { logger } from '../utils/logger';
 import { JwtPayload } from '../middlewares/auth.middleware';
 import { emailService } from './email.service';
 
+const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -42,7 +44,7 @@ export const authService = {
         contactNumber: dto.contactNumber,
         roleId: residentRole.id,
         status: 'ACTIVE',
-        emailVerified: true,
+        emailVerified: false,
       },
       include: { role: true },
     });
@@ -54,6 +56,11 @@ export const authService = {
       entityId: String(user.id),
       action: 'CREATE',
       status: 'SUCCESS',
+    });
+
+    // Send OTP (non-blocking)
+    authService.sendVerificationOtp(user.id, user.email, user.firstName).catch((err) => {
+      logger.error(`[auth] Failed to send verification OTP: ${(err as Error).message}`);
     });
 
     return user;
@@ -107,6 +114,14 @@ export const authService = {
       where: { id: user.id },
       data: { failedLoginAttempts: 0, lockedUntil: null },
     });
+
+    // If email is not verified, send a fresh OTP and return a signal to the client
+    if (!user.emailVerified) {
+      authService.sendVerificationOtp(user.id, user.email, user.firstName).catch((err) => {
+        logger.error(`[auth] Failed to send verification OTP on login: ${(err as Error).message}`);
+      });
+      return { requiresVerification: true, userId: user.id };
+    }
 
     const accessToken = jwt.sign(
       { sub: user.id, email: user.email, role: user.role.roleName },
@@ -168,6 +183,104 @@ export const authService = {
 
   async logout(token: string) {
     await prisma.session.deleteMany({ where: { token } });
+  },
+
+  async sendVerificationOtp(userId: number, email: string, firstName: string) {
+    // Invalidate previous unused OTPs for this user
+    await prisma.emailVerificationOtp.deleteMany({ where: { userId } });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+
+    await prisma.emailVerificationOtp.create({
+      data: { userId, otpHash, expiresAt },
+    });
+
+    await emailService.sendOtpVerification(email, firstName, otp);
+
+    logger.info(`[auth] OTP sent to user ${userId}`);
+  },
+
+  async verifyOtp(userId: number, otp: string, ipAddress?: string, userAgent?: string) {
+    const record = await prisma.emailVerificationOtp.findFirst({
+      where: { userId, usedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!record) throw new Error('OTP expired or not found');
+
+    const valid = await bcrypt.compare(otp, record.otpHash);
+    if (!valid) throw new Error('Invalid OTP');
+
+    await prisma.emailVerificationOtp.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() },
+    });
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true, emailVerifiedAt: new Date() },
+    });
+
+    await safeAuditLog({
+      eventType: 'EMAIL_VERIFIED',
+      userId,
+      entityType: 'user',
+      entityId: String(userId),
+      action: 'VERIFY',
+      status: 'SUCCESS',
+    });
+
+    // Create session and return tokens
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true },
+    });
+    if (!user) throw new Error('User not found');
+
+    const accessToken = jwt.sign(
+      { sub: user.id, email: user.email, role: user.role.roleName },
+      env.JWT_SECRET,
+      { expiresIn: env.JWT_EXPIRATION }
+    );
+
+    const refreshToken = uuidv4();
+    const expiresAt = new Date(Date.now() + env.REFRESH_TOKEN_EXPIRATION * 1000);
+
+    await prisma.session.create({
+      data: { userId: user.id, token: accessToken, refreshToken, ipAddress, userAgent, expiresAt },
+    });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date(), lastLoginIp: ipAddress },
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        contactNumber: user.contactNumber,
+        status: user.status,
+        emailVerified: user.emailVerified,
+        lastLoginAt: user.lastLoginAt?.toISOString(),
+        createdAt: user.createdAt.toISOString(),
+        role: { roleName: user.role.roleName, description: user.role.description || undefined },
+      },
+      accessToken,
+      refreshToken,
+      expiresIn: env.JWT_EXPIRATION,
+    };
+  },
+
+  async resendOtp(userId: number) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('User not found');
+    if (user.emailVerified) throw new Error('Email already verified');
+    await authService.sendVerificationOtp(user.id, user.email, user.firstName);
   },
 
   async refreshToken(refreshToken: string) {
