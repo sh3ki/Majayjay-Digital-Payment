@@ -40,12 +40,29 @@ const CreateBill: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [payerSearch, setPayerSearch] = useState('');
+  const [feeInputValue, setFeeInputValue] = useState('');
+  const [debouncedFeeSearch, setDebouncedFeeSearch] = useState('');
 
   useEffect(() => {
-    adminService.getFees().then((r) => {
+    adminService.getFees({ limit: 1000 }).then((r) => {
       if (r.data) setFees((r.data as Fee[]).filter((f) => f.active));
     });
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedFeeSearch(feeInputValue), 250);
+    return () => clearTimeout(timer);
+  }, [feeInputValue]);
+
+  const fuzzyFilterFees = (options: Fee[]) => {
+    const query = debouncedFeeSearch.toLowerCase().trim();
+    if (!query) return options;
+    const words = query.split(/\s+/);
+    return options.filter((f) => {
+      const target = `${f.feeName} ${f.feeType} ${f.code ?? ''}`.toLowerCase();
+      return words.every((w) => target.includes(w));
+    });
+  };
 
   useEffect(() => {
     if (payerSearch.length < 2) return;
@@ -184,7 +201,10 @@ const CreateBill: React.FC = () => {
                     options={fees.filter((f) => !items.find((i) => i.feeId === f.id))}
                     value={selectedFee}
                     onChange={(_, v) => setSelectedFee(v)}
+                    inputValue={feeInputValue}
+                    onInputChange={(_, v) => setFeeInputValue(v)}
                     getOptionLabel={(f) => `${f.feeName} (${f.feeType})`}
+                    filterOptions={fuzzyFilterFees}
                     renderInput={(params) => <TextField {...params} label="Select Fee" size="small" />}
                   />
                   <Button variant="contained" startIcon={<Add />} onClick={addItem} disabled={!selectedFee}>Add</Button>
