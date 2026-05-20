@@ -17,6 +17,7 @@ const Fees: React.FC = () => {
   const [fees, setFees] = useState<Fee[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -44,8 +45,11 @@ const Fees: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  // Reset page when filters change
-  const handleSearch = (val: string) => { setSearch(val); setPage(1); };
+  // Debounce search input → triggers API only after 300ms of inactivity
+  useEffect(() => {
+    const timer = setTimeout(() => { setSearch(searchInput); setPage(1); }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
   const handleCategoryFilter = (val: string) => { setCategoryFilter(val); setPage(1); };
   const handleTypeFilter = (val: string) => { setTypeFilter(val); setPage(1); };
   const handleApplicableFilter = (val: string) => { setApplicableFilter(val); setPage(1); };
@@ -115,8 +119,8 @@ const Fees: React.FC = () => {
           {/* Filters row */}
           <Box display="flex" gap={2} mb={3} flexWrap="wrap" alignItems="center">
             <TextField
-              size="small" placeholder="Search fee name or description…" value={search}
-              onChange={(e) => handleSearch(e.target.value)} sx={{ flex: 1, minWidth: 220 }}
+              size="small" placeholder="Search fee name or description…" value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)} sx={{ flex: 1, minWidth: 220 }}
               InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
             />
             <FormControl size="small" sx={{ minWidth: 180 }}>
