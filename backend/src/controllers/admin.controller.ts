@@ -114,10 +114,20 @@ export const adminController = {
 
       const where: Record<string, unknown> = {};
       if (search) {
-        where.OR = [
-          { feeName: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-        ];
+        const words = search.trim().split(/\s+/).filter(Boolean);
+        if (words.length === 1) {
+          where.OR = [
+            { feeName: { contains: words[0], mode: 'insensitive' } },
+            { description: { contains: words[0], mode: 'insensitive' } },
+          ];
+        } else {
+          where.AND = words.map((word) => ({
+            OR: [
+              { feeName: { contains: word, mode: 'insensitive' } },
+              { description: { contains: word, mode: 'insensitive' } },
+            ],
+          }));
+        }
       }
       if (categoryId) where.categoryId = parseInt(categoryId);
       if (feeType) where.feeType = feeType;
