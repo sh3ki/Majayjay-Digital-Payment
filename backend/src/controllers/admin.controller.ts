@@ -117,7 +117,6 @@ export const adminController = {
         where.OR = [
           { feeName: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
-          { code: { contains: search, mode: 'insensitive' } },
         ];
       }
       if (categoryId) where.categoryId = parseInt(categoryId);
