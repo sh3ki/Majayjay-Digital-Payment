@@ -27,6 +27,16 @@ async function main() {
     },
   });
 
+  const collectorRole = await prisma.role.upsert({
+    where: { roleName: 'collector' },
+    update: {},
+    create: {
+      roleName: 'collector',
+      description: 'Bill creation and confirmation',
+      permissions: ['bills.create', 'bills.read', 'bills.update', 'payments.read', 'reports.read', 'fees.read'],
+    },
+  });
+
   await prisma.role.upsert({
     where: { roleName: 'department_viewer' },
     update: {},
@@ -158,6 +168,22 @@ async function main() {
       lastName: 'Santos',
       contactNumber: '09000000002',
       roleId: cashierRole.id,
+      departmentId: mto.id,
+      status: 'ACTIVE',
+      emailVerified: true,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'collector@majayjay.gov.ph' },
+    update: { departmentId: mto.id },
+    create: {
+      email: 'collector@majayjay.gov.ph',
+      passwordHash: await bcrypt.hash('Collector@12345', 10),
+      firstName: 'Juan',
+      lastName: 'Collector',
+      contactNumber: '09000000004',
+      roleId: collectorRole.id,
       departmentId: mto.id,
       status: 'ACTIVE',
       emailVerified: true,
@@ -855,9 +881,9 @@ async function main() {
   console.log('✅ Database seeded successfully!');
   console.log('');
   console.log('📊 Seeded data summary:');
-  console.log('   4  roles');
+  console.log('   5  roles');
   console.log('  15  departments');
-  console.log('   8  users (3 default + 5 demo residents)');
+  console.log('   9  users (4 default + 5 demo residents)');
   console.log('   3  payment methods');
   console.log('  22  fee categories');
   console.log(`  ${feeCount}  fees`);
@@ -867,9 +893,10 @@ async function main() {
   console.log('  10  demo official receipts');
   console.log('');
   console.log('👤 Default accounts:');
-  console.log('  Admin:    admin@majayjay.gov.ph    / Admin@12345');
-  console.log('  Cashier:  cashier@majayjay.gov.ph  / Cashier@12345');
-  console.log('  Resident: resident@example.com     / Resident@12345');
+  console.log('  Admin:     admin@majayjay.gov.ph      / Admin@12345');
+  console.log('  Cashier:   cashier@majayjay.gov.ph    / Cashier@12345');
+  console.log('  Collector: collector@majayjay.gov.ph  / Collector@12345');
+  console.log('  Resident:  resident@example.com       / Resident@12345');
 }
 
 main()
