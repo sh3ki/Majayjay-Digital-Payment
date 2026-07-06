@@ -34,11 +34,13 @@ import PenaltyRules from './pages/admin/PenaltyRules';
 import AuditLogs from './pages/admin/AuditLogs';
 import Departments from './pages/admin/Departments';
 import Ledger from './pages/admin/Ledger';
+import CollectorFees from './pages/collector/Fees';
 
-const STAFF = ['admin', 'cashier', 'department_viewer'];
-const STAFF_RESIDENT = ['admin', 'cashier', 'department_viewer', 'resident'];
-const ADMIN_CASHIER = ['admin', 'cashier'];
+const STAFF = ['admin', 'cashier', 'collector', 'department_viewer'];
+const STAFF_RESIDENT = ['admin', 'cashier', 'collector', 'department_viewer', 'resident'];
+const ADMIN_CASHIER_COLLECTOR = ['admin', 'cashier', 'collector'];
 const ADMIN_ONLY = ['admin'];
+const COLLECTOR_ONLY = ['collector'];
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -73,7 +75,7 @@ const App: React.FC = () => {
           <Route path="/bills" element={<ProtectedRoute allowedRoles={STAFF_RESIDENT} />}>
             <Route index element={<Bills />} />
           </Route>
-          <Route path="/bills/create" element={<ProtectedRoute allowedRoles={ADMIN_CASHIER} />}>
+          <Route path="/bills/create" element={<ProtectedRoute allowedRoles={ADMIN_CASHIER_COLLECTOR} />}>
             <Route index element={<CreateBill />} />
           </Route>
           <Route path="/bills/:id" element={<BillDetail />} />
@@ -83,12 +85,16 @@ const App: React.FC = () => {
           </Route>
           <Route path="/payments/:id" element={<PaymentDetail />} />
 
-          <Route path="/cashier" element={<ProtectedRoute allowedRoles={ADMIN_CASHIER} />}>
+          <Route path="/cashier" element={<ProtectedRoute allowedRoles={['admin', 'cashier']} />}>
             <Route index element={<Cashier />} />
           </Route>
 
           <Route path="/reports" element={<ProtectedRoute allowedRoles={STAFF} />}>
             <Route index element={<Reports />} />
+          </Route>
+
+          <Route path="/collector/fees" element={<ProtectedRoute allowedRoles={COLLECTOR_ONLY} />}>
+            <Route index element={<CollectorFees />} />
           </Route>
 
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={ADMIN_ONLY} />}>
