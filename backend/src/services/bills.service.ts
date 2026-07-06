@@ -210,4 +210,35 @@ export const billsService = {
       },
     });
   },
+
+  async confirmBill(id: number, confirmedById: number) {
+    const bill = await prisma.bill.findUnique({ where: { id } });
+    if (!bill) throw new Error('Bill not found');
+    if (bill.status !== 'ISSUED') throw new Error('Only bills with ISSUED status can be confirmed');
+
+    const updated = await prisma.bill.update({
+      where: { id },
+      data: { status: 'UNPAID', updatedById: confirmedById },
+      include: {
+        payer: { select: { id: true, firstName: true, lastName: true, email: true } },
+        items: { include: { fee: true } },
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        eventType: 'BILL_CONFIRMED',
+        userId: confirmedById,
+        entityType: 'bill',
+        entityId: String(id),
+        action: 'UPDATE',
+        oldValue: 'ISSUED',
+        newValue: 'UNPAID',
+        status: 'SUCCESS',
+      },
+    });
+
+    return updated;
+  },
 };
+
