@@ -19,6 +19,7 @@ export const useAuth = () => {
   const roleName = rawRole.toLowerCase();
   const isAdmin = roleName === 'admin';
   const isCashier = roleName === 'cashier';
+  const isCollector = roleName === 'collector';
   const isResident = roleName === 'resident';
   const isDeptViewer = roleName === 'department_viewer';
 
@@ -27,7 +28,7 @@ export const useAuth = () => {
     pendingVerificationUserId,
     login, register, logout, clear,
     verifyOtp, resendOtp, clearPendingVerification,
-    isAdmin, isCashier, isResident, isDeptViewer,
+    isAdmin, isCashier, isCollector, isResident, isDeptViewer,
   };
 };
 
