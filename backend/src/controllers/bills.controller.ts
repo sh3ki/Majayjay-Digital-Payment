@@ -65,4 +65,16 @@ export const billsController = {
       next(err);
     }
   },
+
+  async confirmBill(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      const bill = await billsService.confirmBill(id, req.user!.sub);
+      sendSuccess(res, bill, 'Bill confirmed successfully');
+    } catch (err) {
+      if ((err as Error).message === 'Bill not found') return sendError(res, 'Bill not found', 404);
+      if ((err as Error).message === 'Only bills with ISSUED status can be confirmed') return sendError(res, (err as Error).message, 400);
+      next(err);
+    }
+  },
 };
