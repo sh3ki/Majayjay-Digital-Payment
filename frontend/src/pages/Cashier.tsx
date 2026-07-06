@@ -33,8 +33,10 @@ const Cashier: React.FC = () => {
     setSelectedBill(null);
     try {
       const res = await billsService.searchBills(searchQuery);
-      setSearchResults(res.data || []);
-      if (!res.data?.length) setSearchError('No bills found for this query');
+      // Filter out ISSUED bills for cashiers
+      const filtered = res.data?.filter((bill) => bill.status !== 'ISSUED') || [];
+      setSearchResults(filtered);
+      if (!filtered.length) setSearchError('No bills found for this query');
     } catch {
       setSearchError('Search failed. Please try again.');
     } finally {
