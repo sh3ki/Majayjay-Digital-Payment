@@ -12,10 +12,13 @@ import { formatCurrency, formatShortDate } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
 import { useAuth } from '../hooks/useAuth';
 
-const STATUS_OPTIONS = ['', 'DRAFT', 'ISSUED', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
+
+
+const STATUS_OPTIONS_ALL = ['', 'DRAFT', 'ISSUED', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
+const STATUS_OPTIONS_CASHIER_RESIDENT = ['', 'DRAFT', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
 
 const Bills: React.FC = () => {
-  const { isAdmin, isCashier, isResident } = useAuth();
+  const { isAdmin, isCashier, isCollector, isResident } = useAuth();
   const navigate = useNavigate();
   const [bills, setBills] = useState<Bill[]>([]);
   const [total, setTotal] = useState(0);
@@ -24,6 +27,9 @@ const Bills: React.FC = () => {
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Determine which status options to show
+  const statusOptions = (isCashier || isResident) ? STATUS_OPTIONS_CASHIER_RESIDENT : STATUS_OPTIONS_ALL;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -34,7 +40,11 @@ const Bills: React.FC = () => {
       if (status) params.status = status;
       const res = await billsService.getBills(params);
       if (res.data) {
-        setBills(res.data);
+        // Filter out ISSUED bills for cashiers and residents
+        const filtered = (isCashier || isResident) 
+          ? res.data.filter((bill) => bill.status !== 'ISSUED')
+          : res.data;
+        setBills(filtered);
         setTotal(res.meta?.total || 0);
       }
     } catch {
@@ -42,7 +52,7 @@ const Bills: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, status]);
+  }, [page, search, status, isCashier, isResident]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -60,7 +70,7 @@ const Bills: React.FC = () => {
             {isResident ? 'View and pay your outstanding bills' : 'Manage and track all payment bills'}
           </Typography>
         </Box>
-        {(isAdmin || isCashier) && (
+        {(isAdmin || isCollector) && (
           <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/bills/create')}>
             Create Bill
           </Button>
@@ -84,7 +94,7 @@ const Bills: React.FC = () => {
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel>Status</InputLabel>
               <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
-                {STATUS_OPTIONS.map((s) => (
+                {statusOptions.map((s) => (
                   <MenuItem key={s} value={s}>{s || 'All Statuses'}</MenuItem>
                 ))}
               </Select>
