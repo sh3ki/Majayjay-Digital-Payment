@@ -18,7 +18,7 @@ import api from '../services/api';
 const BillDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin, isCashier, isResident } = useAuth();
+  const { isAdmin, isCashier, isCollector, isResident } = useAuth();
   const [bill, setBill] = useState<Bill | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -30,6 +30,8 @@ const BillDetail: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const [onlinePayLoading, setOnlinePayLoading] = useState(false);
 
   useEffect(() => {
@@ -94,6 +96,22 @@ const BillDetail: React.FC = () => {
     }
   };
 
+  const handleConfirmBill = async () => {
+    if (!bill) return;
+    setConfirmLoading(true);
+    try {
+      await api.put(`/bills/${bill.id}/confirm`);
+      setSuccess('Bill confirmed successfully');
+      setConfirmOpen(false);
+      const res = await billsService.getBillById(bill.id);
+      if (res.data) setBill(res.data);
+    } catch {
+      setError('Failed to confirm bill');
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
   const handlePayOnline = async (method: 'gcash' | 'paymaya') => {
     if (!bill) return;
     setOnlinePayLoading(true);
@@ -142,6 +160,18 @@ const BillDetail: React.FC = () => {
                   <Typography variant="h6" fontWeight={700} fontFamily="monospace">{bill.billNumber}</Typography>
                   <StatusBadge status={bill.status} />
                 </Box>
+                {isCollector && bill.status === 'ISSUED' && (
+                  <Box display="flex" gap={1} flexWrap="wrap">
+                    <Button variant="contained" color="success" size="small" onClick={() => setConfirmOpen(true)}>
+                      Confirm Bill
+                    </Button>
+                    {isAdmin && (
+                      <Button variant="outlined" color="error" startIcon={<Cancel />} size="small" onClick={() => setCancelOpen(true)}>
+                        Cancel Bill
+                      </Button>
+                    )}
+                  </Box>
+                )}
                 {(isAdmin || isCashier) && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && (
                   <Box display="flex" gap={1} flexWrap="wrap">
                     <Button variant="outlined" startIcon={<QrCode2 />} size="small" onClick={handleGenerateQR}>
@@ -360,6 +390,22 @@ const BillDetail: React.FC = () => {
           <Button onClick={() => setCancelOpen(false)}>No, Keep It</Button>
           <Button variant="contained" color="error" onClick={handleCancelBill} disabled={cancelLoading}>
             {cancelLoading ? <CircularProgress size={20} color="inherit" /> : 'Yes, Cancel Bill'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Confirm Bill Dialog */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Bill</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to confirm bill <strong>{bill.billNumber}</strong>? This will change the status from ISSUED to UNPAID and the bill will be sent to cashiers and residents.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button variant="contained" color="success" onClick={handleConfirmBill} disabled={confirmLoading}>
+            {confirmLoading ? <CircularProgress size={20} color="inherit" /> : 'Yes, Confirm Bill'}
           </Button>
         </DialogActions>
       </Dialog>
