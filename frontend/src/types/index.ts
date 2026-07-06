@@ -18,7 +18,7 @@ export interface User {
 }
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING';
-export type UserRole = 'admin' | 'cashier' | 'department_viewer' | 'resident';
+export type UserRole = 'admin' | 'cashier' | 'collector' | 'department_viewer' | 'resident';
 
 export interface AuthState {
   user: User | null;
