@@ -24,13 +24,14 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   // General
-  { label: 'Dashboard',          path: '/dashboard',              icon: <Dashboard />,      roles: ['admin','cashier','department_viewer','resident'],  section: 'General' },
-  { label: 'Bills',              path: '/bills',                  icon: <Receipt />,         roles: ['resident','admin','cashier','department_viewer'], section: 'General' },
-  { label: 'Payments',           path: '/payments',               icon: <Payment />,         roles: ['admin','cashier','department_viewer','resident'],  section: 'General' },
+  { label: 'Dashboard',          path: '/dashboard',              icon: <Dashboard />,      roles: ['admin','cashier','collector','department_viewer','resident'],  section: 'General' },
+  { label: 'Bills',              path: '/bills',                  icon: <Receipt />,         roles: ['resident','admin','cashier','collector','department_viewer'], section: 'General' },
+  { label: 'Payments',           path: '/payments',               icon: <Payment />,         roles: ['admin','cashier','collector','department_viewer','resident'],  section: 'General' },
   { label: 'Cashier Terminal',   path: '/cashier',                icon: <AccountBalance />,  roles: ['cashier','admin'],                                section: 'General' },
-  { label: 'Reports',            path: '/reports',                icon: <BarChart />,        roles: ['admin','cashier','department_viewer'],             section: 'General' },
+  { label: 'Reports',            path: '/reports',                icon: <BarChart />,        roles: ['admin','cashier','collector','department_viewer'],             section: 'General' },
   // Financial Management
   { label: 'Fee Management',     path: '/admin/fees',             icon: <MonetizationOn />,  roles: ['admin'], section: 'Financial Management' },
+  { label: 'Fees',               path: '/collector/fees',         icon: <MonetizationOn />,  roles: ['collector'], section: 'Financial Management' },
   { label: 'Fee Categories',     path: '/admin/fee-categories',   icon: <Category />,        roles: ['admin'], section: 'Financial Management' },
   { label: 'Penalty Rules',      path: '/admin/penalty-rules',    icon: <Settings />,        roles: ['admin'], section: 'Financial Management' },
   { label: 'Departments',        path: '/admin/departments',      icon: <Business />,        roles: ['admin'], section: 'Financial Management' },
