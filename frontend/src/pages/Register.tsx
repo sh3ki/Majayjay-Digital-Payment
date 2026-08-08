@@ -8,10 +8,11 @@ import {
   Alert, Grid, CircularProgress, Chip, InputAdornment, IconButton,
 } from '@mui/material';
 import {
-  PersonAdd, AccountBalanceOutlined, ArrowBack, Security, Verified,
+  PersonAdd, ArrowBack, Security, Verified,
   Visibility, VisibilityOff,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import logo from '../public/majayjay logo.jpg';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../store';
 import { setPendingVerificationUserId } from '../store/slices/authSlice';
@@ -82,8 +83,8 @@ const Register: React.FC = () => {
       {/* Top nav — same style as landing page */}
       <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, py: 2, px: { xs: 2, md: 6 }, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Box sx={{ width: 36, height: 36, borderRadius: 2, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <AccountBalanceOutlined sx={{ color: 'white', fontSize: 19 }} />
+          <Box sx={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
           </Box>
           <Box>
             <Typography fontWeight={800} fontSize={14} color="white" lineHeight={1.1}>Majayjay Digital</Typography>
