@@ -183,6 +183,7 @@ const Reports: React.FC = () => {
             background: #fff !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            overflow: visible !important;
           }
 
           .reports-no-print,
@@ -202,6 +203,13 @@ const Reports: React.FC = () => {
             padding-bottom: 8px;
             border-bottom: 2px solid #0D47A1;
           }
+
+          /* hide the global app bar / navbar in print */
+          .MuiAppBar-root { display: none !important; }
+
+          /* hide scrollbars in print preview */
+          * { scrollbar-width: none; -ms-overflow-style: none; }
+          *::-webkit-scrollbar { display: none; }
 
           .reports-print-section .MuiCard-root {
             box-shadow: none !important;
@@ -251,6 +259,7 @@ const Reports: React.FC = () => {
         <div id="reports-print-tab-0" className="reports-print-section">
           <Box className="print-header">
             <Typography variant="h5" fontWeight={700} color="#0D47A1">Reports - Collection Report</Typography>
+            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
           </Box>
           <Card className="reports-no-print" sx={{ mb: 3 }}>
             <CardContent>
@@ -271,7 +280,7 @@ const Reports: React.FC = () => {
                     <Tooltip title="Export transactions to CSV">
                       <Button variant="outlined" startIcon={<Download />} onClick={exportCSV} size="small">Export CSV</Button>
                     </Tooltip>
-                    <Tooltip title="Print (A4)">
+                    <Tooltip>
                       <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                         Print
                       </Button>
@@ -423,6 +432,7 @@ const Reports: React.FC = () => {
         <div id="reports-print-tab-2" className="reports-print-section">
           <Box className="print-header">
             <Typography variant="h5" fontWeight={700} color="#0D47A1">Reports - Collection Per Category</Typography>
+            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
           </Box>
           <Card className="reports-no-print" sx={{ mb: 3 }}>
             <CardContent>
@@ -438,7 +448,7 @@ const Reports: React.FC = () => {
                 <Button variant="contained" onClick={loadReport} disabled={loading}>
                   {loading ? <CircularProgress size={20} color="inherit" /> : 'Generate'}
                 </Button>
-                <Tooltip title="Print (A4)">
+                <Tooltip>
                   <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                     Print
                   </Button>
@@ -536,41 +546,49 @@ const Reports: React.FC = () => {
             </Grid>
           </Grid>
 
-          {selectedCategory && (
+          {categorySummary.length > 0 ? (
+            categorySummary.map((c) => (
+              <Card key={c.categoryName} sx={{ mb: 2 }}>
+                <CardContent>
+                  <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Payments for {c.categoryName}</Typography>
+                  <Box sx={{ overflowX: 'auto' }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Date</TableCell>
+                          <TableCell>Transaction ID</TableCell>
+                          <TableCell>Payer</TableCell>
+                          <TableCell>OR #</TableCell>
+                          <TableCell>Method</TableCell>
+                          <TableCell align="right">Amount (share)</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {c.payments.map((p: any, idx: number) => (
+                          <TableRow key={`${p.paymentId}-${idx}`}>
+                            <TableCell sx={{ fontSize: 12 }}>{formatDateTime(p.paymentDate)}</TableCell>
+                            <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{p.transactionId}</TableCell>
+                            <TableCell>{p.payer?.firstName} {p.payer?.lastName}</TableCell>
+                            <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{p.orNumber || '-'}</TableCell>
+                            <TableCell>{p.method || '-'}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(p.share)}</TableCell>
+                          </TableRow>
+                        ))}
+                        {c.payments.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={6} align="center" sx={{ py: 4, color: '#757575' }}>No payments</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
             <Card>
               <CardContent>
-                <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Payments for {selectedCategory}</Typography>
-                <Box sx={{ overflowX: 'auto' }}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Transaction ID</TableCell>
-                        <TableCell>Payer</TableCell>
-                        <TableCell>OR #</TableCell>
-                        <TableCell>Method</TableCell>
-                        <TableCell align="right">Amount (share)</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {categorySummary.find(c => c.categoryName === selectedCategory)?.payments.map((p: any, idx: number) => (
-                        <TableRow key={`${p.paymentId}-${idx}`}>
-                          <TableCell sx={{ fontSize: 12 }}>{formatDateTime(p.paymentDate)}</TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{p.transactionId}</TableCell>
-                          <TableCell>{p.payer?.firstName} {p.payer?.lastName}</TableCell>
-                          <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{p.orNumber || '-'}</TableCell>
-                          <TableCell>{p.method || '-'}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(p.share)}</TableCell>
-                        </TableRow>
-                      ))}
-                      {categorySummary.find(c => c.categoryName === selectedCategory)?.payments.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} align="center" sx={{ py: 4, color: '#757575' }}>No payments</TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </Box>
+                <Typography color="text.secondary">No category collections</Typography>
               </CardContent>
             </Card>
           )}
@@ -583,13 +601,14 @@ const Reports: React.FC = () => {
         <div id="reports-print-tab-1" className="reports-print-section">
           <Box className="print-header">
             <Typography variant="h5" fontWeight={700} color="#0D47A1">Reports - Analytics Dashboard</Typography>
+            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
           </Box>
           {analyticsLoading ? (
             <Box display="flex" justifyContent="center" p={6}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
           ) : analytics ? (
             <>
               <Box className="reports-print-controls" display="flex" justifyContent="flex-end" mb={2}>
-                <Tooltip title="Print (A4)">
+                <Tooltip>
                   <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                     Print
                   </Button>
