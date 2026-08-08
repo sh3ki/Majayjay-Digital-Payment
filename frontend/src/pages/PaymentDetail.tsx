@@ -45,78 +45,90 @@ const PaymentDetail: React.FC = () => {
         const jspdfModule = await dynamicImport('jspdf');
         const jsPDF = jspdfModule.jsPDF || jspdfModule.default || jspdfModule;
 
-        // Clone receipt and render at A4 width to match print layout exactly
-        const mmToPx = (mm: number) => mm * (96 / 25.4);
-        const a4WidthMm = 210;
-        const a4HeightMm = 297;
-        const a4WidthPx = Math.round(mmToPx(a4WidthMm));
+        // Strategy: render full-styles receipt inside a hidden iframe so the same CSS applies,
+        // then capture the iframe content with html2canvas for an accurate visual match.
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.left = '-9999px';
+        iframe.style.width = '210mm';
+        iframe.style.height = '297mm';
+        document.body.appendChild(iframe);
 
-        const clone = el.cloneNode(true) as HTMLElement;
-        // apply styles to match A4 print layout
-        clone.style.boxShadow = 'none';
-        clone.style.background = 'white';
-        clone.style.width = `${a4WidthPx}px`;
-        clone.style.maxWidth = 'none';
-        // create offscreen container
-        const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.left = '-9999px';
-        container.style.top = '0';
-        container.style.width = `${a4WidthPx}px`;
-        container.appendChild(clone);
-        document.body.appendChild(container);
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc) throw new Error('Unable to create iframe document');
+
+        // collect styles from parent document
+        const headHtmlParts: string[] = [];
+        Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).forEach((el) => {
+          headHtmlParts.push(el.outerHTML);
+        });
+
+        // tag original elements with temporary ids so we can copy computed styles into iframe clone
+        let copyId = 0;
+        const assignCopyIds = (root: HTMLElement) => {
+          const nodes = Array.from(root.querySelectorAll('*')) as HTMLElement[];
+          nodes.unshift(root);
+          nodes.forEach((node) => {
+            node.setAttribute('data-copy-id', `copy-${++copyId}`);
+          });
+        };
+        assignCopyIds(el);
+
+        // insert receipt HTML into iframe
+        const receiptHtml = el.outerHTML;
+        doc.open();
+        doc.write(`<html><head>${headHtmlParts.join('\n')}<meta name="viewport" content="width=device-width, initial-scale=1"/></head><body>${receiptHtml}</body></html>`);
+        doc.close();
 
         try {
-          // Ensure fonts and images are ready, and inline computed styles to match on-screen rendering
-          await (document as any).fonts?.ready;
+          // wait for fonts and images inside iframe
+          await (iframe.contentWindow as any).document.fonts?.ready;
+          const imgs = Array.from(doc.querySelectorAll('img')) as HTMLImageElement[];
+          await Promise.all(imgs.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise<void>((res) => { img.onload = img.onerror = () => res(); });
+          }));
 
-          const inlineStyles = (root: HTMLElement) => {
-            const nodes = Array.from(root.querySelectorAll('*')) as HTMLElement[];
-            nodes.unshift(root);
-            nodes.forEach((node) => {
+          // copy computed styles from original elements into iframe clone using data-copy-id
+          const computeCssText = (cs: CSSStyleDeclaration) => {
+            let cssText = '';
+            for (let i = 0; i < cs.length; i++) {
+              const prop = cs[i];
+              const val = cs.getPropertyValue(prop);
+              cssText += `${prop}:${val};`;
+            }
+            return cssText;
+          };
+
+          for (let i = 1; i <= copyId; i++) {
+            const id = `copy-${i}`;
+            const orig = document.querySelector(`[data-copy-id="${id}"]`) as HTMLElement;
+            const cloneEl = doc.querySelector(`[data-copy-id="${id}"]`) as HTMLElement;
+            if (orig && cloneEl) {
               try {
-                const cs = window.getComputedStyle(node);
-                let cssText = '';
-                for (let i = 0; i < cs.length; i++) {
-                  const prop = cs[i];
-                  const val = cs.getPropertyValue(prop);
-                  cssText += `${prop}:${val};`;
-                }
-                node.style.cssText = cssText;
+                const cs = window.getComputedStyle(orig);
+                cloneEl.style.cssText = computeCssText(cs);
               } catch (e) {
                 // ignore
               }
-            });
-          };
+            }
+          }
 
-          const waitForImages = (root: HTMLElement) => {
-            const imgs = Array.from(root.querySelectorAll('img')) as HTMLImageElement[];
-            return Promise.all(imgs.map(img => {
-              if (img.complete) return Promise.resolve();
-              return new Promise<void>((res) => { img.onload = img.onerror = () => res(); });
-            }));
-          };
+          const target = doc.querySelector('[data-copy-id="copy-1"]') as HTMLElement || doc.body.firstElementChild as HTMLElement;
+          if (!target) throw new Error('Receipt element not found in iframe');
 
-          inlineStyles(clone);
-          await waitForImages(clone);
-
-          const scale = 3; // higher DPI for better fidelity
-          const canvas = await html2canvas(clone, { scale, backgroundColor: '#ffffff', useCORS: true });
-
+          const scale = 3;
+          const canvas = await html2canvas(target, { scale, backgroundColor: '#ffffff', useCORS: true });
           const imgData = canvas.toDataURL('image/png');
           const pdf = new jsPDF('p', 'mm', 'a4');
-          const pdfWidth = a4WidthMm; // mm
-
-          // calculate dimensions
+          const pdfWidth = 210; // mm
           const pxPerMm = canvas.width / pdfWidth;
           const totalPdfHeightMm = canvas.height / pxPerMm;
 
-          if (totalPdfHeightMm <= a4HeightMm) {
-            // single page
+          if (totalPdfHeightMm <= 297) {
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, totalPdfHeightMm);
           } else {
-            // multi-page handling: slice canvas
-            const pageHeightPx = Math.floor(pxPerMm * a4HeightMm);
+            const pageHeightPx = Math.floor(pxPerMm * 297);
             let remainingHeightPx = canvas.height;
             let position = 0;
             while (remainingHeightPx > 0) {
@@ -140,23 +152,22 @@ const PaymentDetail: React.FC = () => {
           setDownloading(false);
           return;
         } finally {
-          // cleanup
-          document.body.removeChild(container);
+          // cleanup iframe and remove data-copy-id from original
+          document.body.removeChild(iframe);
+          try {
+            const originals = Array.from(el.querySelectorAll('[data-copy-id]')) as HTMLElement[];
+            originals.forEach(n => n.removeAttribute('data-copy-id'));
+            el.removeAttribute('data-copy-id');
+          } catch (e) {
+            // ignore
+          }
         }
       } catch (err) {
-        // If client-side libs are missing or generation failed, fall back to server-provided PDF
-        console.warn('Client-side PDF generation failed, falling back to server PDF', err);
+        console.error('Client-side PDF generation failed', err);
+        setError('Failed to generate PDF client-side. No fallback available.');
+        // Do not fall back to server PDF - user requested no fallback
+        return;
       }
-
-      // Fallback: download server-generated PDF
-      const response = await api.get(`/payments/receipt/${receiptRef}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-      const link = document.createElement('a');
-      link.href = url;
-      const fallbackFileName = `${payment.transactionId || receipt?.orNumber || receiptRef}.pdf`;
-      link.download = fallbackFileName;
-      link.click();
-      window.URL.revokeObjectURL(url);
     } catch (ex) {
       setError('Failed to download PDF');
     } finally {
