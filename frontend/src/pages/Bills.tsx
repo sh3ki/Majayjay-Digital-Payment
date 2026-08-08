@@ -4,22 +4,31 @@ import {
   Box, Typography, Card, CardContent, Button, TextField, InputAdornment,
   IconButton, Select, MenuItem, FormControl, InputLabel, Pagination, Chip,
   Table, TableHead, TableBody, TableRow, TableCell, CircularProgress, Alert,
+  Dialog, DialogTitle, DialogContent, DialogActions, Tooltip,
 } from '@mui/material';
 import { Search, Add, Refresh } from '@mui/icons-material';
 import { billsService } from '../services/bills.service';
 import { Bill } from '../types';
-import { formatCurrency, formatShortDate } from '../utils/formatters';
+import { formatCurrency, formatShortDate, isOverdue } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
 import { useAuth } from '../hooks/useAuth';
 
 
 
-const STATUS_OPTIONS_ALL = ['', 'DRAFT', 'ISSUED', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
-const STATUS_OPTIONS_CASHIER_RESIDENT = ['', 'DRAFT', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
+
+
+const STATUS_OPTIONS_ALL = ['', 'ISSUED', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
+const STATUS_OPTIONS_CASHIER_RESIDENT = ['', 'UNPAID', 'PARTIALLY_PAID', 'PAID', 'CANCELLED', 'OVERDUE'];
 
 const Bills: React.FC = () => {
   const { isAdmin, isCashier, isCollector, isResident } = useAuth();
   const navigate = useNavigate();
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [issuedBills, setIssuedBills] = useState<Bill[]>([]);
+  const [issuedLoading, setIssuedLoading] = useState(false);
+  const [issuedError, setIssuedError] = useState('');
+  const [confirmLoadingMap, setConfirmLoadingMap] = useState<Record<number, boolean>>({});
+  const [cancelLoadingMap, setCancelLoadingMap] = useState<Record<number, boolean>>({});
   const [bills, setBills] = useState<Bill[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -70,11 +79,31 @@ const Bills: React.FC = () => {
             {isResident ? 'View and pay your outstanding bills' : 'Manage and track all payment bills'}
           </Typography>
         </Box>
-        {(isAdmin || isCollector) && (
-          <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/bills/create')}>
-            Create Bill
-          </Button>
-        )}
+        <Box>
+          {(isAdmin || isCollector) && (
+            <Button variant="contained" startIcon={<Add />} onClick={() => navigate('/bills/create')} sx={{ mr: isCollector ? 1 : 0 }}>
+              Create Bill
+            </Button>
+          )}
+          {isCollector && (
+            <Button variant="outlined" onClick={async () => {
+              setConfirmModalOpen(true);
+              // fetch issued bills
+              setIssuedLoading(true);
+              setIssuedError('');
+              try {
+                const res = await billsService.getBills({ page: 1, limit: 100, status: 'ISSUED' });
+                setIssuedBills(res.data || []);
+              } catch (err) {
+                setIssuedError('Failed to load issued bills');
+              } finally {
+                setIssuedLoading(false);
+              }
+            }}>
+              Confirm Bills
+            </Button>
+          )}
+        </Box>
       </Box>
 
       <Card>
@@ -118,6 +147,7 @@ const Bills: React.FC = () => {
                     <TableRow>
                       <TableCell>Bill No.</TableCell>
                       {!isResident && <TableCell>Payer</TableCell>}
+                      <TableCell>Items</TableCell>
                       <TableCell>Bill Date</TableCell>
                       <TableCell>Due Date</TableCell>
                       <TableCell align="right">Total</TableCell>
@@ -128,7 +158,7 @@ const Bills: React.FC = () => {
                   <TableBody>
                     {bills.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={isResident ? 6 : 7} align="center" sx={{ py: 4, color: '#757575' }}>
+                        <TableCell colSpan={isResident ? 7 : 8} align="center" sx={{ py: 4, color: '#757575' }}>
                           No bills found
                         </TableCell>
                       </TableRow>
@@ -154,10 +184,22 @@ const Bills: React.FC = () => {
                             </Typography>
                           </TableCell>
                         )}
+                        <TableCell sx={{ minWidth: 220 }}>
+                          {bill.items && bill.items.length > 0 ? (
+                            bill.items.map((it) => (
+                              <Box key={it.id} display="flex" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                                <Typography variant="body2">{it.feeName}</Typography>
+                                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{formatCurrency(it.amount)}</Typography>
+                              </Box>
+                            ))
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">No items</Typography>
+                          )}
+                        </TableCell>
                         <TableCell>{formatShortDate(bill.billDate)}</TableCell>
                         <TableCell>
                           {formatShortDate(bill.dueDate)}
-                          {new Date() > new Date(bill.dueDate) && bill.status !== 'PAID' && (
+                          {isOverdue(bill.dueDate) && bill.status !== 'PAID' && (
                             <Chip label="Overdue" size="small" color="error" sx={{ ml: 1, fontSize: 10 }} />
                           )}
                         </TableCell>
@@ -187,6 +229,123 @@ const Bills: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      {/* Confirm Bills Modal for Collector */}
+      <Dialog open={confirmModalOpen} onClose={() => setConfirmModalOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>Confirm Issued Bills</DialogTitle>
+        <DialogContent>
+          {issuedError && <Alert severity="error" sx={{ mb: 2 }}>{issuedError}</Alert>}
+          {issuedLoading ? (
+            <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
+          ) : (
+            <Box sx={{ overflowX: 'auto' }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Bill No.</TableCell>
+                    <TableCell>Payer</TableCell>
+                    <TableCell>Items</TableCell>
+                    <TableCell>Bill Date</TableCell>
+                    <TableCell>Due Date</TableCell>
+                    <TableCell align="right">Total</TableCell>
+                    <TableCell align="right">Balance</TableCell>
+                    <TableCell align="center">Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {issuedBills.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} align="center" sx={{ py: 4, color: '#757575' }}>
+                        No issued bills found
+                      </TableCell>
+                    </TableRow>
+                  ) : issuedBills.map((b) => (
+                    <TableRow key={b.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace" fontSize={12}>{b.billNumber}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={500}>{b.payer?.firstName} {b.payer?.lastName}</Typography>
+                        <Typography variant="caption" color="text.secondary">{b.payer?.email}</Typography>
+                      </TableCell>
+                      <TableCell sx={{ minWidth: 220 }}>
+                        {b.items && b.items.length > 0 ? (
+                          b.items.map((it) => (
+                            <Box key={it.id} display="flex" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                              <Typography variant="body2">{it.feeName}</Typography>
+                              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{formatCurrency(it.amount)}</Typography>
+                            </Box>
+                          ))
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">No items</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>{formatShortDate(b.billDate)}</TableCell>
+                      <TableCell>{formatShortDate(b.dueDate)}</TableCell>
+                      <TableCell align="right">{formatCurrency(b.totalAmount)}</TableCell>
+                      <TableCell align="right">{formatCurrency(b.balanceAmount)}</TableCell>
+                      <TableCell align="center">
+                        <Box display="flex" gap={1} justifyContent="center">
+                          <Tooltip title="Confirm this bill (ISSUED → UNPAID)">
+                            <span>
+                              <Button variant="contained" color="success" size="small" disabled={!!confirmLoadingMap[b.id]}
+                                onClick={async (e: React.MouseEvent) => {
+                                  e.stopPropagation();
+                                  setConfirmLoadingMap((m) => ({ ...m, [b.id]: true }));
+                                  try {
+                                    await billsService.confirmBill(b.id);
+                                    // remove from list
+                                    setIssuedBills((prev) => prev.filter((x) => x.id !== b.id));
+                                    // refresh main list
+                                    load();
+                                  } catch (err) {
+                                    // set a local error on issuedError
+                                    setIssuedError('Failed to confirm bill');
+                                  } finally {
+                                    setConfirmLoadingMap((m) => ({ ...m, [b.id]: false }));
+                                  }
+                                }}
+                              >
+                                {confirmLoadingMap[b.id] ? <CircularProgress size={18} color="inherit" /> : 'Confirm'}
+                              </Button>
+                            </span>
+                          </Tooltip>
+
+                          <Tooltip title="Cancel this bill (mark as CANCELLED)">
+                            <span>
+                              <Button variant="outlined" color="error" size="small" disabled={!!cancelLoadingMap[b.id]}
+                                onClick={async (e: React.MouseEvent) => {
+                                  e.stopPropagation();
+                                  setCancelLoadingMap((m) => ({ ...m, [b.id]: true }));
+                                  try {
+                                    await billsService.updateBillStatus(b.id, 'CANCELLED');
+                                    // remove from list
+                                    setIssuedBills((prev) => prev.filter((x) => x.id !== b.id));
+                                    // refresh main list
+                                    load();
+                                  } catch (err) {
+                                    setIssuedError('Failed to cancel bill');
+                                  } finally {
+                                    setCancelLoadingMap((m) => ({ ...m, [b.id]: false }));
+                                  }
+                                }}
+                              >
+                                {cancelLoadingMap[b.id] ? <CircularProgress size={18} color="inherit" /> : 'Cancel'}
+                              </Button>
+                            </span>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmModalOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
