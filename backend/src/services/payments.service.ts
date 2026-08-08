@@ -4,6 +4,7 @@ import {
   generateTransactionId,
   generateOrNumber,
   buildReceiptData,
+  generateSequentialTransactionId,
 } from '../utils/receiptGenerator';
 import { generateQRCode } from '../utils/qrGenerator';
 import { env } from '../config/env';
@@ -36,7 +37,7 @@ export const paymentsService = {
     const cashMethod = await prisma.paymentMethod.findUnique({ where: { methodName: 'Cash' } });
     if (!cashMethod) throw new Error('Cash payment method not found');
 
-    const transactionId = generateTransactionId();
+    const transactionId = await generateSequentialTransactionId();
     const orNumber = generateOrNumber();
 
     const payment = await prisma.payment.create({
