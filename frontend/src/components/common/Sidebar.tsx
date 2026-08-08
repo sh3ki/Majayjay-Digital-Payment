@@ -1,4 +1,5 @@
 import React from 'react';
+import logo from '../../public/majayjay logo.jpg';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Typography, Avatar, Tooltip, Divider, Drawer,
@@ -89,16 +90,24 @@ const SidebarContent: React.FC<{ collapsed: boolean; onToggle: () => void; onNav
           minHeight: 56,
         }}
       >
-        {!collapsed && (
-          <Box>
-            <Typography variant="subtitle1" fontWeight={800} color="white" fontSize={13} lineHeight={1.2}>
-              Majayjay
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: 10 }}>
-              Digital Payment System
-            </Typography>
-          </Box>
-        )}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            component="img"
+            src={logo}
+            alt="Majayjay logo"
+            sx={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.18)' }}
+          />
+          {!collapsed && (
+            <Box>
+              <Typography variant="subtitle1" fontWeight={800} color="white" fontSize={13} lineHeight={1.2}>
+                Majayjay
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.65)', fontSize: 10 }}>
+                Digital Payment System
+              </Typography>
+            </Box>
+          )}
+        </Box>
         <IconButton onClick={onToggle} size="small" sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}>
           {collapsed ? <ChevronRight fontSize="small" /> : <ChevronLeft fontSize="small" />}
         </IconButton>
