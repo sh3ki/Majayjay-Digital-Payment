@@ -6,11 +6,12 @@ import {
 } from '@mui/material';
 import {
   QrCode2, BarChart, Receipt, Security, Speed, People,
-  CheckCircle, ArrowForward, PaymentOutlined, AccountBalanceOutlined,
+  CheckCircle, ArrowForward, PaymentOutlined,
   TrendingUp, NotificationsActive, CloudSync, Verified,
   MenuOutlined, Close,
 } from '@mui/icons-material';
 import useAuth from '../hooks/useAuth';
+import logo from '../public/majayjay logo.jpg';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const PRIMARY   = '#1565C0';
@@ -66,7 +67,7 @@ const STEPS = [
     number: '01',
     title: 'Login to Your Portal',
     desc: 'Residents log in to view outstanding bills, check payment history, and download official receipts.',
-    icon: <AccountBalanceOutlined sx={{ fontSize: 28, color: 'white' }} />,
+    icon: <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />,
   },
   {
     number: '02',
@@ -218,13 +219,11 @@ const LandingPage: React.FC = () => {
         <Box display="flex" alignItems="center" gap={1.5}>
           <Box
             sx={{
-              width: 38, height: 38, borderRadius: 2,
-              background: scrolled ? GRADIENT : 'rgba(255,255,255,0.2)',
+              width: 38, height: 38,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: scrolled ? 'none' : '1.5px solid rgba(255,255,255,0.4)',
             }}
           >
-            <AccountBalanceOutlined sx={{ color: scrolled ? 'white' : 'white', fontSize: 20 }} />
+            <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', border: scrolled ? 'none' : '1.5px solid rgba(255,255,255,0.4)' }} />
           </Box>
           <Box>
             <Typography
@@ -474,12 +473,12 @@ const LandingPage: React.FC = () => {
                   <Box display="flex" alignItems="center" gap={1.5} mb={3}>
                     <Box
                       sx={{
-                        width: 40, height: 40, borderRadius: 2,
+                        width: 40, height: 40, borderRadius: '8px',
                         background: GRADIENT, display: 'flex',
                         alignItems: 'center', justifyContent: 'center',
                       }}
                     >
-                      <AccountBalanceOutlined sx={{ color: 'white', fontSize: 20 }} />
+                      <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
                     </Box>
                     <Box>
                       <Typography fontWeight={700} color={DARK} fontSize={14}>Payment Summary</Typography>
@@ -728,7 +727,7 @@ const LandingPage: React.FC = () => {
               >
                 <Box sx={{ background: 'linear-gradient(135deg, #37474F, #546E7A)', p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Box sx={{ width: 48, height: 48, borderRadius: 2, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <AccountBalanceOutlined sx={{ color: 'white', fontSize: 26 }} />
+                    <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
                   </Box>
                   <Box>
                     <Typography variant="h6" fontWeight={700} color="white">For LGU Staff</Typography>
@@ -861,8 +860,8 @@ const LandingPage: React.FC = () => {
             {/* Brand */}
             <Grid item xs={12} md={4}>
               <Box display="flex" alignItems="center" gap={1.5} mb={2}>
-                <Box sx={{ width: 36, height: 36, borderRadius: 2, background: GRADIENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <AccountBalanceOutlined sx={{ color: 'white', fontSize: 18 }} />
+                <Box sx={{ width: 36, height: 36, borderRadius: '6px', background: GRADIENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
                 </Box>
                 <Typography fontWeight={800} color="white" fontSize={16}>
                   Majayjay Digital Payment
