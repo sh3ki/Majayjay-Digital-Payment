@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import { reportsService } from '../services/reports.service';
 import { CollectionReport, PaymentMethodBreakdown } from '../types';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import { formatCurrency, formatDateTime, manilaStartOfDayISO, manilaEndOfDayISO } from '../utils/formatters';
 
 const COLORS = ['#1565C0', '#42A5F5', '#2196F3', '#FFC107', '#4CAF50', '#FF5722', '#9C27B0', '#00BCD4', '#FF9800', '#607D8B'];
 
@@ -63,14 +63,19 @@ const Reports: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [categorySummary, setCategorySummary] = useState<{ categoryName: string; total: number; count: number; payments: Array<any> }[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const loadReport = async () => {
     setLoading(true);
     setError('');
     try {
+      // Use Manila-based datetimes for filtering (payments use Manila DateTime)
+      const manilaStart = manilaStartOfDayISO(startDate);
+      const manilaEnd = manilaEndOfDayISO(endDate);
       const [reportRes, methodRes] = await Promise.all([
-        reportsService.getCollectionReport({ startDate, endDate }),
-        reportsService.getPaymentMethodBreakdown({ startDate, endDate }),
+        reportsService.getCollectionReport({ startDate: manilaStart, endDate: manilaEnd }),
+        reportsService.getPaymentMethodBreakdown({ startDate: manilaStart, endDate: manilaEnd }),
       ]);
       if (reportRes.data) setReport(reportRes.data);
       if (methodRes.data) setMethodBreakdown(methodRes.data);
@@ -109,6 +114,33 @@ const Reports: React.FC = () => {
   useEffect(() => { loadReport(); }, []);
   useEffect(() => { loadAnalytics(); loadRevenue(revYear); }, []);
 
+  useEffect(() => {
+    if (!report) {
+      setCategorySummary([]);
+      setSelectedCategory(null);
+      return;
+    }
+    const map = new Map<string, { total: number; count: number; payments: Array<any> }>();
+    report.payments.forEach((p) => {
+      const items = (p.bill && (p.bill as any).items) || [];
+      const itemsTotal = items.reduce((s: number, it: any) => s + (parseFloat(String(it.amount)) || 0), 0);
+      if (itemsTotal <= 0) return;
+      items.forEach((it: any) => {
+        const cat = it.fee?.category?.categoryName || 'Uncategorized';
+        const share = (parseFloat(String(it.amount)) / itemsTotal) * parseFloat(String(p.amount));
+        const entry = map.get(cat) || { total: 0, count: 0, payments: [] };
+        entry.total += share;
+        entry.payments.push({ paymentId: p.id, transactionId: p.transactionId, paymentDate: p.paymentDate, payer: p.payer, amount: parseFloat(String(p.amount)), share, orNumber: p.receipt?.orNumber, method: p.method?.methodName });
+        entry.count += 1;
+        map.set(cat, entry);
+      });
+    });
+    const arr = Array.from(map.entries()).map(([categoryName, v]) => ({ categoryName, total: v.total, count: v.count, payments: v.payments }));
+    arr.sort((a, b) => b.total - a.total);
+    setCategorySummary(arr);
+    if (arr.length > 0 && !selectedCategory) setSelectedCategory(arr[0].categoryName);
+  }, [report]);
+
   const exportCSV = () => {
     if (!report) return;
     const rows = [
@@ -140,6 +172,7 @@ const Reports: React.FC = () => {
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
         <Tab label="Collection Report" />
         <Tab label="Analytics Dashboard" />
+        <Tab label="Collection Per Category" />
       </Tabs>
 
       {/* ── TAB 0: Collection Report ── */}
@@ -299,6 +332,155 @@ const Reports: React.FC = () => {
                 </CardContent>
               </Card>
             </>
+          )}
+        </>
+      )}
+      {/* ── TAB 2: Collection Per Category ── */}
+      {tab === 2 && (
+        <>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Box display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
+                <TextField
+                  label="Start Date" type="date" value={startDate} size="small"
+                  onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="End Date" type="date" value={endDate} size="small"
+                  onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }}
+                />
+                <Button variant="contained" onClick={loadReport} disabled={loading}>
+                  {loading ? <CircularProgress size={20} color="inherit" /> : 'Generate'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+          <Grid container spacing={3} mb={3}>
+            <Grid item xs={12} sm={4}>
+              <Card sx={{ background: '#E3F2FD' }}>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">Total Collected (by Category)</Typography>
+                  <Typography variant="h4" fontWeight={700} color="#0D47A1">{formatCurrency(categorySummary.reduce((s, c) => s + c.total, 0))}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">Categories</Typography>
+                  <Typography variant="h4" fontWeight={700} color="#1565C0">{categorySummary.length}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Card>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">Top Category</Typography>
+                  <Typography variant="h6" fontWeight={700} color="#42A5F5">{categorySummary[0]?.categoryName || '-'}</Typography>
+                  <Typography variant="body2" color="text.secondary">{categorySummary[0] ? formatCurrency(categorySummary[0].total) : '-'}</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={3} mb={3}>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Collection by Category</Typography>
+                  {categorySummary.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={categorySummary.map(c => ({ categoryName: c.categoryName, total: c.total }))} layout="vertical" margin={{ left: 20, right: 40 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis type="number" tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
+                        <YAxis type="category" dataKey="categoryName" width={180} tick={{ fontSize: 12 }} />
+                        <RTooltip formatter={(v: number) => formatCurrency(v)} />
+                        <Bar dataKey="total" fill="#1565C0">
+                          {categorySummary.map((_e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box display="flex" alignItems="center" justifyContent="center" height={120}><Typography color="text.secondary">No data</Typography></Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardContent>
+                  <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Category Totals</Typography>
+                  <Box sx={{ overflowX: 'auto' }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Category</TableCell>
+                          <TableCell align="center">Transactions</TableCell>
+                          <TableCell align="right">Total</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {categorySummary.map((c) => (
+                          <TableRow key={c.categoryName} hover onClick={() => setSelectedCategory(c.categoryName)} sx={{ cursor: 'pointer' }}>
+                            <TableCell>{c.categoryName}</TableCell>
+                            <TableCell align="center">{c.count}</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 700 }}>{formatCurrency(c.total)}</TableCell>
+                          </TableRow>
+                        ))}
+                        {categorySummary.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#757575' }}>No category collections</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {selectedCategory && (
+            <Card>
+              <CardContent>
+                <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Payments for {selectedCategory}</Typography>
+                <Box sx={{ overflowX: 'auto' }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Transaction ID</TableCell>
+                        <TableCell>Payer</TableCell>
+                        <TableCell>OR #</TableCell>
+                        <TableCell>Method</TableCell>
+                        <TableCell align="right">Amount (share)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {categorySummary.find(c => c.categoryName === selectedCategory)?.payments.map((p: any, idx: number) => (
+                        <TableRow key={`${p.paymentId}-${idx}`}>
+                          <TableCell sx={{ fontSize: 12 }}>{formatDateTime(p.paymentDate)}</TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{p.transactionId}</TableCell>
+                          <TableCell>{p.payer?.firstName} {p.payer?.lastName}</TableCell>
+                          <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{p.orNumber || '-'}</TableCell>
+                          <TableCell>{p.method || '-'}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>{formatCurrency(p.share)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {categorySummary.find(c => c.categoryName === selectedCategory)?.payments.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} align="center" sx={{ py: 4, color: '#757575' }}>No payments</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </Box>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
