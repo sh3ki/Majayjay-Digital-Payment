@@ -17,7 +17,7 @@ import { reportsService } from '../services/reports.service';
 import { billsService } from '../services/bills.service';
 import { paymentsService } from '../services/payments.service';
 import { DashboardKPIs, MonthlyRevenue, PaymentMethodBreakdown, Bill, Payment } from '../types';
-import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDateTime, formatDate, isOverdue } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
 import { useAuth } from '../hooks/useAuth';
 
@@ -82,10 +82,15 @@ const ResidentDashboard: React.FC = () => {
   if (loading) return <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>;
   if (error) return <Alert severity="error">{error}</Alert>;
 
-  const unpaidBills = bills.filter((b) => ['ISSUED', 'UNPAID', 'OVERDUE', 'PARTIALLY_PAID'].includes(b.status));
+  const unpaidBills = bills.filter((b) => ['UNPAID', 'OVERDUE', 'PARTIALLY_PAID'].includes(b.status));
   const totalOutstanding = unpaidBills.reduce((s, b) => s + parseFloat(String(b.balanceAmount)), 0);
   const totalPaid = payments.reduce((s, p) => s + parseFloat(String(p.amount)), 0);
-  const nextDue = unpaidBills.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+  const parseDueUtc = (d: string) => {
+    const dateOnly = (d || '').split('T')[0];
+    const [y, m, day] = dateOnly.split('-').map(Number);
+    return Date.UTC(y, (m || 1) - 1, day || 1);
+  };
+  const nextDue = unpaidBills.sort((a, b) => parseDueUtc(a.dueDate) - parseDueUtc(b.dueDate))[0];
 
   return (
     <Box>
@@ -143,7 +148,7 @@ const ResidentDashboard: React.FC = () => {
                     {unpaidBills.slice(0, 5).map((b) => (
                       <TableRow key={b.id} hover>
                         <TableCell sx={{ fontFamily: 'monospace', fontSize: 12 }}>{b.billNumber}</TableCell>
-                        <TableCell sx={{ fontSize: 12, color: new Date() > new Date(b.dueDate) ? '#F44336' : 'inherit' }}>
+                        <TableCell sx={{ fontSize: 12, color: isOverdue(b.dueDate) ? '#F44336' : 'inherit' }}>
                           {formatDate(b.dueDate)}
                         </TableCell>
                         <TableCell align="right" sx={{ fontWeight: 700, color: '#F44336' }}>
