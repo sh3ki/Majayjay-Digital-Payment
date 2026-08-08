@@ -64,14 +64,12 @@ body {
 /* Ensure printing only the receipt area and preserve layout */
 @media print {
   @page { size: A4; margin: 10mm; }
-  /* hide everything by default */
-  body * { visibility: hidden; }
-  /* make receipt visible */
-  #receipt-wrapper, #receipt-wrapper * { visibility: visible; }
-  /* position receipt at top-left of page */
-  #receipt-wrapper { position: absolute; left: 0; top: 0; width: 100%; }
-  /* remove shadows and force white background */
-  #receipt-wrapper { box-shadow: none !important; background: white !important; }
+  /* Scope receipt-only visibility rules to pages that actually render receipt wrapper. */
+  body:has(#receipt-wrapper) * { visibility: hidden; }
+  body:has(#receipt-wrapper) #receipt-wrapper,
+  body:has(#receipt-wrapper) #receipt-wrapper * { visibility: visible; }
+  body:has(#receipt-wrapper) #receipt-wrapper { position: absolute; left: 0; top: 0; width: 100%; }
+  body:has(#receipt-wrapper) #receipt-wrapper { box-shadow: none !important; background: white !important; }
 }
 
 /* hide time portion when printing (browser header/time handled separately) */
