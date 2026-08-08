@@ -73,3 +73,9 @@ body {
   /* remove shadows and force white background */
   #receipt-wrapper { box-shadow: none !important; background: white !important; }
 }
+
+/* hide time portion when printing (browser header/time handled separately) */
+.receipt-time { display: inline; }
+@media print {
+  #receipt-wrapper .receipt-time { display: none !important; }
+}
