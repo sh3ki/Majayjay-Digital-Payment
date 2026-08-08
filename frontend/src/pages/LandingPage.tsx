@@ -368,7 +368,8 @@ const LandingPage: React.FC = () => {
             {/* Left content */}
             <Grid item xs={12} md={7}>
               <Chip
-                label="🏛️ Municipal Government of Majayjay, Laguna"
+                avatar={<Avatar src={logo} sx={{ width: 22, height: 22 }} />}
+                label="Municipal Government of Majayjay, Laguna"
                 sx={{
                   background: 'rgba(255,255,255,0.15)',
                   color: 'white', fontWeight: 600, mb: 3,
