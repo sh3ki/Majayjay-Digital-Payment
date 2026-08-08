@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Box, Card, CardContent, TextField, Button, Typography,
-  Alert, InputAdornment, IconButton, CircularProgress, Divider, Chip,
+  Alert, InputAdornment, IconButton, CircularProgress, Divider, Chip, Avatar,
 } from '@mui/material';
 import {
   Visibility, VisibilityOff, LockOutlined,
@@ -101,7 +101,8 @@ const Login: React.FC = () => {
           {/* Hero text above card */}
           <Box textAlign="center" mb={4}>
             <Chip
-              label="🏛️ Municipal Government of Majayjay, Laguna"
+              avatar={<Avatar src={logo} sx={{ width: 22, height: 22 }} />}
+              label="Municipal Government of Majayjay, Laguna"
               sx={{ background: 'rgba(255,255,255,0.15)', color: 'white', fontWeight: 600, mb: 2, border: '1px solid rgba(255,255,255,0.25)', fontSize: 12, backdropFilter: 'blur(4px)' }}
             />
             <Typography variant="h4" fontWeight={800} color="white" mb={0.5} letterSpacing="-0.5px">
