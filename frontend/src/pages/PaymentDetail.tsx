@@ -8,7 +8,8 @@ import { ArrowBack, Print, Download } from '@mui/icons-material';
 import { paymentsService } from '../services/payments.service';
 import { Payment } from '../types';
 import { formatCurrency, formatDateTime, formatDate, formatTime } from '../utils/formatters';
-import api from '../services/api';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const PaymentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,142 +33,55 @@ const PaymentDetail: React.FC = () => {
     if (!receiptRef) return;
     setDownloading(true);
     try {
-      // Try to generate PDF client-side from the receipt DOM so it matches the on-screen layout exactly.
-      // Uses dynamic imports so this will fall back to server PDF if the libs are not installed.
+      // Capture the actual on-screen receipt so downloaded PDF matches visible layout.
       const el = document.getElementById('receipt-wrapper');
       if (!el) throw new Error('Receipt element not found');
+      await (document as any).fonts?.ready;
+      const canvas = await html2canvas(el, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      });
 
-      try {
-        // Indirect dynamic import using new Function to avoid Vite's static import analysis
-        const dynamicImport = (p: string) => new Function(`return import('${p}')`)() as Promise<any>;
-        const html2canvasModule = await dynamicImport('html2canvas');
-        const html2canvas = html2canvasModule.default || html2canvasModule;
-        const jspdfModule = await dynamicImport('jspdf');
-        const jsPDF = jspdfModule.jsPDF || jspdfModule.default || jspdfModule;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+      const imgWidthMm = pageWidthMm;
+      const pxPerMm = canvas.width / imgWidthMm;
+      const pageHeightPx = Math.floor(pageHeightMm * pxPerMm);
 
-        // Strategy: render full-styles receipt inside a hidden iframe so the same CSS applies,
-        // then capture the iframe content with html2canvas for an accurate visual match.
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.left = '-9999px';
-        iframe.style.width = '210mm';
-        iframe.style.height = '297mm';
-        document.body.appendChild(iframe);
+      let renderedPx = 0;
+      let firstPage = true;
 
-        const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (!doc) throw new Error('Unable to create iframe document');
+      while (renderedPx < canvas.height) {
+        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeightPx;
+        const pageCtx = pageCanvas.getContext('2d');
+        if (!pageCtx) throw new Error('Could not get canvas context');
+        pageCtx.drawImage(
+          canvas,
+          0,
+          renderedPx,
+          canvas.width,
+          sliceHeightPx,
+          0,
+          0,
+          canvas.width,
+          sliceHeightPx,
+        );
 
-        // collect styles from parent document
-        const headHtmlParts: string[] = [];
-        Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).forEach((el) => {
-          headHtmlParts.push(el.outerHTML);
-        });
-
-        // tag original elements with temporary ids so we can copy computed styles into iframe clone
-        let copyId = 0;
-        const assignCopyIds = (root: HTMLElement) => {
-          const nodes = Array.from(root.querySelectorAll('*')) as HTMLElement[];
-          nodes.unshift(root);
-          nodes.forEach((node) => {
-            node.setAttribute('data-copy-id', `copy-${++copyId}`);
-          });
-        };
-        assignCopyIds(el);
-
-        // insert receipt HTML into iframe
-        const receiptHtml = el.outerHTML;
-        doc.open();
-        doc.write(`<html><head>${headHtmlParts.join('\n')}<meta name="viewport" content="width=device-width, initial-scale=1"/></head><body>${receiptHtml}</body></html>`);
-        doc.close();
-
-        try {
-          // wait for fonts and images inside iframe
-          await (iframe.contentWindow as any).document.fonts?.ready;
-          const imgs = Array.from(doc.querySelectorAll('img')) as HTMLImageElement[];
-          await Promise.all(imgs.map(img => {
-            if (img.complete) return Promise.resolve();
-            return new Promise<void>((res) => { img.onload = img.onerror = () => res(); });
-          }));
-
-          // copy computed styles from original elements into iframe clone using data-copy-id
-          const computeCssText = (cs: CSSStyleDeclaration) => {
-            let cssText = '';
-            for (let i = 0; i < cs.length; i++) {
-              const prop = cs[i];
-              const val = cs.getPropertyValue(prop);
-              cssText += `${prop}:${val};`;
-            }
-            return cssText;
-          };
-
-          for (let i = 1; i <= copyId; i++) {
-            const id = `copy-${i}`;
-            const orig = document.querySelector(`[data-copy-id="${id}"]`) as HTMLElement;
-            const cloneEl = doc.querySelector(`[data-copy-id="${id}"]`) as HTMLElement;
-            if (orig && cloneEl) {
-              try {
-                const cs = window.getComputedStyle(orig);
-                cloneEl.style.cssText = computeCssText(cs);
-              } catch (e) {
-                // ignore
-              }
-            }
-          }
-
-          const target = doc.querySelector('[data-copy-id="copy-1"]') as HTMLElement || doc.body.firstElementChild as HTMLElement;
-          if (!target) throw new Error('Receipt element not found in iframe');
-
-          const scale = 3;
-          const canvas = await html2canvas(target, { scale, backgroundColor: '#ffffff', useCORS: true });
-          const imgData = canvas.toDataURL('image/png');
-          const pdf = new jsPDF('p', 'mm', 'a4');
-          const pdfWidth = 210; // mm
-          const pxPerMm = canvas.width / pdfWidth;
-          const totalPdfHeightMm = canvas.height / pxPerMm;
-
-          if (totalPdfHeightMm <= 297) {
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, totalPdfHeightMm);
-          } else {
-            const pageHeightPx = Math.floor(pxPerMm * 297);
-            let remainingHeightPx = canvas.height;
-            let position = 0;
-            while (remainingHeightPx > 0) {
-              const tmpCanvas = document.createElement('canvas');
-              tmpCanvas.width = canvas.width;
-              const sliceHeight = Math.min(pageHeightPx, remainingHeightPx);
-              tmpCanvas.height = sliceHeight;
-              const ctx = tmpCanvas.getContext('2d') as CanvasRenderingContext2D;
-              ctx.drawImage(canvas, 0, position, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-              const sliceData = tmpCanvas.toDataURL('image/png');
-              const sliceHeightMm = sliceHeight / pxPerMm;
-              pdf.addImage(sliceData, 'PNG', 0, 0, pdfWidth, sliceHeightMm);
-              remainingHeightPx -= sliceHeight;
-              position += sliceHeight;
-              if (remainingHeightPx > 0) pdf.addPage();
-            }
-          }
-
-          const fileName = `${payment.transactionId || receipt?.orNumber || receiptRef}`;
-          pdf.save(`${fileName}.pdf`);
-          setDownloading(false);
-          return;
-        } finally {
-          // cleanup iframe and remove data-copy-id from original
-          document.body.removeChild(iframe);
-          try {
-            const originals = Array.from(el.querySelectorAll('[data-copy-id]')) as HTMLElement[];
-            originals.forEach(n => n.removeAttribute('data-copy-id'));
-            el.removeAttribute('data-copy-id');
-          } catch (e) {
-            // ignore
-          }
-        }
-      } catch (err) {
-        console.error('Client-side PDF generation failed', err);
-        setError('Failed to generate PDF client-side. No fallback available.');
-        // Do not fall back to server PDF - user requested no fallback
-        return;
+        const imgData = pageCanvas.toDataURL('image/png');
+        const sliceHeightMm = sliceHeightPx / pxPerMm;
+        if (!firstPage) pdf.addPage('a4', 'p');
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidthMm, sliceHeightMm);
+        renderedPx += sliceHeightPx;
+        firstPage = false;
       }
+
+      const fileName = `${payment.transactionId || receipt?.orNumber || receiptRef}`;
+      pdf.save(`${fileName}.pdf`);
     } catch (ex) {
       setError('Failed to download PDF');
     } finally {
