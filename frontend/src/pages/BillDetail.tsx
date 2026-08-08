@@ -10,7 +10,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { billsService } from '../services/bills.service';
 import { paymentsService } from '../services/payments.service';
 import { Bill } from '../types';
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, isOverdue } from '../utils/formatters';
 import StatusBadge from '../components/common/StatusBadge';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
@@ -26,6 +26,7 @@ const BillDetail: React.FC = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [cashPaymentOpen, setCashPaymentOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentError, setPaymentError] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -62,12 +63,24 @@ const BillDetail: React.FC = () => {
 
   const handleCashPayment = async () => {
     if (!bill) return;
+    // validate amount: numeric, 0 <= amt <= balanceDue
+    setPaymentError('');
+    const amt = parseFloat(paymentAmount || '0');
+    if (Number.isNaN(amt) || amt < 0) {
+      setPaymentError('Invalid payment amount');
+      return;
+    }
+    if (amt > (balanceDue || 0)) {
+      setPaymentError('Amount cannot exceed amount due');
+      return;
+    }
+
     setPaymentLoading(true);
     try {
       await paymentsService.recordCashPayment({
         billId: bill.id,
         payerId: bill.payerId,
-        amount: parseFloat(paymentAmount),
+        amount: amt,
       });
       setSuccess('Cash payment recorded successfully');
       setCashPaymentOpen(false);
@@ -134,7 +147,10 @@ const BillDetail: React.FC = () => {
   if (error && !bill) return <Alert severity="error">{error}</Alert>;
   if (!bill) return <Alert severity="error">Bill not found</Alert>;
 
-  const totalDue = bill.balanceAmount + (bill.currentPenaltyTotal || 0);
+  const subtotal = bill.items?.reduce((s, i) => s + (Number((i as any).amount) || 0), 0) || 0;
+  const penalties = bill.currentPenaltyTotal ?? bill.penaltyAmount ?? 0;
+  const paymentsTotal = bill.paidAmount ?? (bill.payments?.reduce((s, p) => s + (Number((p as any).amount) || 0), 0) || 0);
+  const balanceDue = Math.max(0, subtotal + penalties - paymentsTotal);
 
   return (
     <Box>
@@ -165,30 +181,45 @@ const BillDetail: React.FC = () => {
                     <Button variant="contained" color="success" size="small" onClick={() => setConfirmOpen(true)}>
                       Confirm Bill
                     </Button>
-                    {isAdmin && (
-                      <Button variant="outlined" color="error" startIcon={<Cancel />} size="small" onClick={() => setCancelOpen(true)}>
-                        Cancel Bill
-                      </Button>
-                    )}
+                    <Button variant="outlined" color="error" startIcon={<Cancel />} size="small" onClick={() => setCancelOpen(true)}>
+                      Cancel Bill
+                    </Button>
                   </Box>
                 )}
-                {(isAdmin || isCashier) && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && (
-                  <Box display="flex" gap={1} flexWrap="wrap">
-                    <Button variant="outlined" startIcon={<QrCode2 />} size="small" onClick={handleGenerateQR}>
-                      Generate QR
-                    </Button>
-                    <Button variant="contained" startIcon={<Payment />} size="small" onClick={() => {
-                      setPaymentAmount(String(totalDue));
-                      setCashPaymentOpen(true);
-                    }}>
-                      Record Cash
-                    </Button>
-                    {isAdmin && (
-                      <Button variant="outlined" color="error" startIcon={<Cancel />} size="small" onClick={() => setCancelOpen(true)}>
-                        Cancel Bill
+                {(isAdmin || isCashier) && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && bill.status !== 'ISSUED' && (
+                    <Box display="flex" gap={1} flexWrap="wrap">
+                      <Box display="flex" gap={1}>
+                        <Button
+                          variant="contained"
+                          startIcon={<PhoneAndroid />}
+                          size="small"
+                          onClick={handleGenerateQR}
+                          sx={{ bgcolor: '#00B0F0', '&:hover': { bgcolor: '#0090D0' } }}
+                          disabled={onlinePayLoading}
+                        >
+                          GCASH
+                        </Button>
+                        <Button
+                          variant="contained"
+                          startIcon={<AccountBalance />}
+                          size="small"
+                          onClick={handleGenerateQR}
+                          sx={{ bgcolor: '#50C878', '&:hover': { bgcolor: '#3CAB60' } }}
+                          disabled={onlinePayLoading}
+                        >
+                          PAYMAYA
+                        </Button>
+                      </Box>
+                      <Button variant="contained" startIcon={<Payment />} size="small" onClick={() => {
+                        setPaymentAmount(String(balanceDue || 0));
+                        setCashPaymentOpen(true);
+                      }}>
+                        Record Cash
                       </Button>
-                    )}
-                  </Box>
+                      {/* Admin cancel button intentionally removed from this payment/action block
+                       to avoid duplicate Cancel buttons. Admin cancel is rendered below in a
+                       single place so it doesn't appear multiple times for the same status. */}
+                    </Box>
                 )}
                 {isResident && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && (
                   <Box display="flex" gap={1} flexWrap="wrap">
@@ -201,6 +232,13 @@ const BillDetail: React.FC = () => {
                       onClick={() => handlePayOnline('paymaya')}
                       sx={{ bgcolor: '#50C878', '&:hover': { bgcolor: '#3CAB60' } }}>
                       Pay via Maya
+                    </Button>
+                  </Box>
+                )}
+                {isAdmin && bill.status !== 'CANCELLED' && !(isCollector && bill.status === 'ISSUED') && (
+                  <Box>
+                    <Button variant="outlined" color="error" startIcon={<Cancel />} size="small" onClick={() => setCancelOpen(true)}>
+                      Cancel Bill
                     </Button>
                   </Box>
                 )}
@@ -233,7 +271,7 @@ const BillDetail: React.FC = () => {
                 <Grid item xs={6}><Typography variant="body2" color="text.secondary">Bill Date</Typography>
                   <Typography fontWeight={500}>{formatDate(bill.billDate)}</Typography></Grid>
                 <Grid item xs={6}><Typography variant="body2" color="text.secondary">Due Date</Typography>
-                  <Typography fontWeight={500} color={new Date() > new Date(bill.dueDate) && bill.status !== 'PAID' ? 'error' : 'inherit'}>
+                  <Typography fontWeight={500} color={isOverdue(bill.dueDate) && bill.status !== 'PAID' ? 'error' : 'inherit'}>
                     {formatDate(bill.dueDate)}
                   </Typography></Grid>
               </Grid>
@@ -293,12 +331,12 @@ const BillDetail: React.FC = () => {
 
               <Box display="flex" justifyContent="space-between">
                 <Typography variant="h6" fontWeight={700}>Balance Due</Typography>
-                <Typography variant="h6" fontWeight={700} color={bill.balanceAmount > 0 ? 'error.main' : 'success.main'}>
-                  {formatCurrency(bill.balanceAmount)}
+                <Typography variant="h6" fontWeight={700} color={balanceDue > 0 ? 'error.main' : 'success.main'}>
+                  {formatCurrency(balanceDue)}
                 </Typography>
               </Box>
 
-              {bill.currentPenaltyTotal && bill.currentPenaltyTotal > 0 && (
+              {bill.currentPenaltyTotal > 0 && (
                 <Alert severity="warning" sx={{ mt: 2, fontSize: 12 }}>
                   ₱{bill.currentPenaltyTotal.toFixed(2)} in penalties apply. Pay now to avoid more charges.
                 </Alert>
@@ -324,8 +362,13 @@ const BillDetail: React.FC = () => {
                       <Typography variant="body2" fontWeight={500}>{formatCurrency(parseFloat(String(payment.amount)))}</Typography>
                       <Typography variant="caption" color="text.secondary">{(payment.method as { methodName?: string })?.methodName}</Typography>
                     </Box>
-                    <Box textAlign="right">
+                    <Box textAlign="right" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <StatusBadge status={payment.status} />
+                      {(bill.status === 'PAID' || bill.status === 'PARTIALLY_PAID') && (
+                        <Button size="small" variant="text" onClick={() => navigate(`/payments/${payment.id}`)}>
+                          See payment
+                        </Button>
+                      )}
                     </Box>
                   </Box>
                 ))}
@@ -353,27 +396,30 @@ const BillDetail: React.FC = () => {
       </Dialog>
 
       {/* Cash Payment Dialog */}
-      <Dialog open={cashPaymentOpen} onClose={() => setCashPaymentOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={cashPaymentOpen} onClose={() => setCashPaymentOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Record Cash Payment</DialogTitle>
         <DialogContent>
           <Box p={1}>
             <Typography variant="body2" color="text.secondary" mb={2}>
-              Total amount due: <strong>{formatCurrency(totalDue)}</strong>
+              Total amount due: <strong>{formatCurrency(balanceDue)}</strong>
             </Typography>
             <TextField
               label="Payment Amount (PHP)"
               type="number"
               fullWidth
               value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-              inputProps={{ min: 0, step: 0.01 }}
+              onChange={(e) => { setPaymentAmount(e.target.value); setPaymentError(''); }}
+              inputProps={{ min: 0, step: 0.01, max: balanceDue }}
+              helperText={`Max ${formatCurrency(balanceDue)}`}
+              error={!!paymentError}
             />
+            {paymentError && <Alert severity="error" sx={{ mt: 1 }}>{paymentError}</Alert>}
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCashPaymentOpen(false)}>Cancel</Button>
           <Button variant="contained" onClick={handleCashPayment} disabled={paymentLoading || !paymentAmount}>
-            {paymentLoading ? <CircularProgress size={20} /> : 'Record Payment'}
+            {paymentLoading ? <CircularProgress size={20} /> : 'Record Cash Payment'}
           </Button>
         </DialogActions>
       </Dialog>
