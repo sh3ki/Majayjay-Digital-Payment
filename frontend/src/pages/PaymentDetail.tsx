@@ -46,9 +46,12 @@ const PaymentDetail: React.FC = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidthMm = 210;
       const pageHeightMm = 297;
-      const imgWidthMm = pageWidthMm;
-      const pxPerMm = canvas.width / imgWidthMm;
-      const pageHeightPx = Math.floor(pageHeightMm * pxPerMm);
+      const marginMm = 10; // left & right margins
+      const contentWidthMm = pageWidthMm - marginMm * 2; // available width for content
+      const contentHeightMm = pageHeightMm - marginMm * 2; // available height for content
+
+      const pxPerMm = canvas.width / contentWidthMm;
+      const pageHeightPx = Math.floor(contentHeightMm * pxPerMm);
 
       let renderedPx = 0;
       let firstPage = true;
@@ -75,7 +78,8 @@ const PaymentDetail: React.FC = () => {
         const imgData = pageCanvas.toDataURL('image/png');
         const sliceHeightMm = sliceHeightPx / pxPerMm;
         if (!firstPage) pdf.addPage('a4', 'p');
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidthMm, sliceHeightMm);
+        // place image with left margin and top margin
+        pdf.addImage(imgData, 'PNG', marginMm, marginMm, contentWidthMm, sliceHeightMm);
         renderedPx += sliceHeightPx;
         firstPage = false;
       }
