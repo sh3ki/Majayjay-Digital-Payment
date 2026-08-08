@@ -60,3 +60,16 @@ body {
   .no-print { display: none !important; }
   body { background: white; }
 }
+
+/* Ensure printing only the receipt area and preserve layout */
+@media print {
+  @page { size: A4; margin: 10mm; }
+  /* hide everything by default */
+  body * { visibility: hidden; }
+  /* make receipt visible */
+  #receipt-wrapper, #receipt-wrapper * { visibility: visible; }
+  /* position receipt at top-left of page */
+  #receipt-wrapper { position: absolute; left: 0; top: 0; width: 100%; }
+  /* remove shadows and force white background */
+  #receipt-wrapper { box-shadow: none !important; background: white !important; }
+}
