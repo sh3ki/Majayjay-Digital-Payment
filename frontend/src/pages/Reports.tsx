@@ -4,8 +4,7 @@ import {
   CircularProgress, Alert, Table, TableHead, TableBody, TableRow, TableCell,
   Tooltip, Tabs, Tab, Chip, Select, MenuItem, FormControl, InputLabel,
 } from '@mui/material';
-import { Print } from '@mui/icons-material';
-import { Download, TrendingUp, People, AccountBalance, Receipt } from '@mui/icons-material';
+import { Download, TrendingUp, People, AccountBalance, Receipt, Print } from '@mui/icons-material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line,
@@ -165,50 +164,104 @@ const Reports: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const printSection = (elementId: string, title = 'Report') => {
-    const byId = document.getElementById(elementId);
-    const nodes = document.querySelectorAll(`[data-print-key="${elementId}"]`);
-    const pieces: string[] = [];
-    if (byId) pieces.push(byId.innerHTML);
-    if (nodes && nodes.length > 0) nodes.forEach((n) => pieces.push((n as HTMLElement).innerHTML));
-    if (pieces.length === 0) return;
-    const w = window.open('', '_blank');
-    if (!w) return;
-    const styles = `
-      @page { size: A4; margin: 20mm; }
-      html,body{height:100%;}
-      body{font-family: -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; color:#111; margin:0;}
-      .page{box-sizing:border-box; padding:8mm; width:210mm; min-height:297mm;}
-      table{border-collapse:collapse; width:100%;}
-      table th, table td{border:1px solid #e0e0e0; padding:6px 8px; text-align:left;}
-      h1,h2,h3{color:#0D47A1; margin:0 0 8px 0}
-      svg{max-width:100%; height:auto}
-    `;
-
-    const content = `
-      <div class="page">
-        <h1>${title}</h1>
-        <div>${pieces.join('<hr style="border:none;border-top:1px solid #e0e0e0;margin:12px 0;"/>')}</div>
-      </div>
-    `;
-
-    w.document.write(`<!doctype html><html><head><title>${title}</title><style>${styles}</style></head><body>${content}</body></html>`);
-    w.document.close();
-    // allow time for external resources / svg render
-    setTimeout(() => {
-      w.focus();
-      w.print();
-      // keep window open briefly so user can cancel if needed
-      setTimeout(() => w.close(), 500);
-    }, 600);
+  const clearPrintSelection = () => {
+    document.body.classList.remove('reports-printing');
+    document.querySelectorAll('.reports-print-section.print-selected').forEach((node) => {
+      node.classList.remove('print-selected');
+    });
   };
 
-  return (
-    <Box>
-      <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>Reports & Analytics</Typography>
-      <Typography variant="body2" color="text.secondary" mb={3}>Collection reports and revenue analysis</Typography>
+  const printSection = (elementId: string) => {
+    clearPrintSelection();
+    const section = document.getElementById(elementId);
+    if (!section) return;
+    section.classList.add('print-selected');
+    document.body.classList.add('reports-printing');
 
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+    // Let layout settle before opening print dialog so charts keep proper dimensions.
+    setTimeout(() => {
+      window.print();
+    }, 120);
+  };
+
+  useEffect(() => {
+    const onAfterPrint = () => clearPrintSelection();
+    window.addEventListener('afterprint', onAfterPrint);
+    return () => window.removeEventListener('afterprint', onAfterPrint);
+  }, []);
+
+  return (
+    <Box className="reports-page-root">
+      <style>{`
+        .print-header { display: none; }
+
+        @media print {
+          @page { size: A4; margin: 12mm; }
+
+          html, body {
+            background: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .reports-no-print,
+          .reports-print-controls {
+            display: none !important;
+          }
+
+          .reports-print-section {
+            display: none !important;
+          }
+
+          .reports-print-section.print-selected {
+            display: block !important;
+          }
+
+          .reports-print-section.print-selected .print-header {
+            display: block !important;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #0D47A1;
+          }
+
+          .reports-print-section .MuiCard-root {
+            box-shadow: none !important;
+            border: 1px solid #DCE3EA;
+            break-inside: avoid-page;
+            page-break-inside: avoid;
+          }
+
+          .reports-print-section .MuiGrid-item,
+          .reports-print-section .MuiTable-root,
+          .reports-print-section .recharts-wrapper {
+            break-inside: avoid-page;
+            page-break-inside: avoid;
+          }
+
+          .reports-print-section table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          .reports-print-section th,
+          .reports-print-section td {
+            border: 1px solid #E0E0E0;
+            padding: 6px 8px;
+          }
+
+          .reports-print-section .recharts-responsive-container {
+            width: 100% !important;
+            min-height: 220px !important;
+          }
+        }
+      `}</style>
+
+      <Box className="reports-no-print">
+        <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>Reports & Analytics</Typography>
+        <Typography variant="body2" color="text.secondary" mb={3}>Collection reports and revenue analysis</Typography>
+      </Box>
+
+      <Tabs className="reports-no-print" value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
         <Tab label="Collection Report" />
         <Tab label="Analytics Dashboard" />
         <Tab label="Collection Per Category" />
@@ -216,10 +269,14 @@ const Reports: React.FC = () => {
 
       {/* ── TAB 0: Collection Report ── */}
       {tab === 0 && (
-        <>
+        <div id="reports-print-tab-0" className="reports-print-section">
+          <Box className="print-header">
+            <Typography variant="h5" fontWeight={700} color="#0D47A1">Collection Report</Typography>
+            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
+          </Box>
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Box display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
+              <Box className="reports-print-controls" display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
                 <TextField
                   label="Start Date" type="date" value={startDate} size="small"
                   onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }}
@@ -237,14 +294,14 @@ const Reports: React.FC = () => {
                       <Button variant="outlined" startIcon={<Download />} onClick={exportCSV} size="small">Export CSV</Button>
                     </Tooltip>
                     <Tooltip title="Print (A4)">
-                      <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-0', `Collection Report ${startDate} to ${endDate}`)}>
+                      <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-0')}>
                         Print
                       </Button>
                     </Tooltip>
                   </>
                 )}
               </Box>
-              <div id="reports-print-tab-0">
+              <div className="reports-no-print">
               <Box display="flex" gap={1} flexWrap="wrap">
                 <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', mr: 0.5 }}>Quick:</Typography>
                 {datePresets.map((p) => (
@@ -262,7 +319,7 @@ const Reports: React.FC = () => {
           {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
           {report && (
-            <div data-print-key="reports-print-tab-0">
+            <div>
               <Grid container spacing={3} mb={3}>
                 <Grid item xs={12} sm={4}>
                   <Card sx={{ background: '#E3F2FD' }}>
@@ -381,14 +438,18 @@ const Reports: React.FC = () => {
               </Card>
             </div>
           )}
-        </>
+        </div>
       )}
       {/* ── TAB 2: Collection Per Category ── */}
       {tab === 2 && (
-        <>
+        <div id="reports-print-tab-2" className="reports-print-section">
+          <Box className="print-header">
+            <Typography variant="h5" fontWeight={700} color="#0D47A1">Collection Per Category</Typography>
+            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
+          </Box>
           <Card sx={{ mb: 3 }}>
             <CardContent>
-              <Box display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
+              <Box className="reports-print-controls" display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
                 <TextField
                   label="Start Date" type="date" value={startDate} size="small"
                   onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }}
@@ -401,7 +462,7 @@ const Reports: React.FC = () => {
                   {loading ? <CircularProgress size={20} color="inherit" /> : 'Generate'}
                 </Button>
                 <Tooltip title="Print (A4)">
-                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-2', `Collection per Category ${startDate} to ${endDate}`)}>
+                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-2')}>
                     Print
                   </Button>
                 </Tooltip>
@@ -411,7 +472,7 @@ const Reports: React.FC = () => {
 
           {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-          <div data-print-key="reports-print-tab-2">
+          <div>
           <Grid container spacing={3} mb={3}>
             <Grid item xs={12} sm={4}>
               <Card sx={{ background: '#E3F2FD' }}>
@@ -537,24 +598,28 @@ const Reports: React.FC = () => {
             </Card>
           )}
           </div>
-        </>
+        </div>
       )}
 
       {/* ── TAB 1: Analytics Dashboard ── */}
       {tab === 1 && (
-        <>
+        <div id="reports-print-tab-1" className="reports-print-section">
+          <Box className="print-header">
+            <Typography variant="h5" fontWeight={700} color="#0D47A1">Analytics Dashboard</Typography>
+            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
+          </Box>
           {analyticsLoading ? (
             <Box display="flex" justifyContent="center" p={6}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
           ) : analytics ? (
             <>
-              <Box display="flex" justifyContent="flex-end" mb={2}>
+              <Box className="reports-print-controls" display="flex" justifyContent="flex-end" mb={2}>
                 <Tooltip title="Print (A4)">
-                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-1', `Analytics Dashboard ${startDate} to ${endDate}`)}>
+                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-1')}>
                     Print
                   </Button>
                 </Tooltip>
               </Box>
-              <div data-print-key="reports-print-tab-1">
+              <div>
               {/* KPI Cards */}
               <Grid container spacing={3} mb={3}>
                 {[
@@ -683,7 +748,7 @@ const Reports: React.FC = () => {
           ) : (
             <Alert severity="info">No analytics data available. Load the page again after transactions exist.</Alert>
           )}
-        </>
+        </div>
       )}
     </Box>
   );
