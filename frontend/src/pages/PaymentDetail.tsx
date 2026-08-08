@@ -67,7 +67,40 @@ const PaymentDetail: React.FC = () => {
         document.body.appendChild(container);
 
         try {
-          const scale = 2; // high-res
+          // Ensure fonts and images are ready, and inline computed styles to match on-screen rendering
+          await (document as any).fonts?.ready;
+
+          const inlineStyles = (root: HTMLElement) => {
+            const nodes = Array.from(root.querySelectorAll('*')) as HTMLElement[];
+            nodes.unshift(root);
+            nodes.forEach((node) => {
+              try {
+                const cs = window.getComputedStyle(node);
+                let cssText = '';
+                for (let i = 0; i < cs.length; i++) {
+                  const prop = cs[i];
+                  const val = cs.getPropertyValue(prop);
+                  cssText += `${prop}:${val};`;
+                }
+                node.style.cssText = cssText;
+              } catch (e) {
+                // ignore
+              }
+            });
+          };
+
+          const waitForImages = (root: HTMLElement) => {
+            const imgs = Array.from(root.querySelectorAll('img')) as HTMLImageElement[];
+            return Promise.all(imgs.map(img => {
+              if (img.complete) return Promise.resolve();
+              return new Promise<void>((res) => { img.onload = img.onerror = () => res(); });
+            }));
+          };
+
+          inlineStyles(clone);
+          await waitForImages(clone);
+
+          const scale = 3; // higher DPI for better fidelity
           const canvas = await html2canvas(clone, { scale, backgroundColor: '#ffffff', useCORS: true });
 
           const imgData = canvas.toDataURL('image/png');
