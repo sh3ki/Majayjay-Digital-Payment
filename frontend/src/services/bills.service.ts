@@ -22,6 +22,11 @@ export const billsService = {
     return data;
   },
 
+  async confirmBill(id: number) {
+    const { data } = await api.put<ApiResponse<Bill>>(`/bills/${id}/confirm`);
+    return data;
+  },
+
   async searchBills(q: string) {
     const { data } = await api.get<ApiResponse<Bill[]>>('/bills/search', { params: { q } });
     return data;
