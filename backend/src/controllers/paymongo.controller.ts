@@ -3,7 +3,7 @@ import prisma from '../config/database';
 import { paymongoService } from '../services/paymongo.service';
 import { sendSuccess, sendError } from '../utils/response';
 import { env } from '../config/env';
-import { generateTransactionId, generateOrNumber, buildReceiptData } from '../utils/receiptGenerator';
+import { generateTransactionId, generateOrNumber, buildReceiptData, generateSequentialTransactionId } from '../utils/receiptGenerator';
 import { logger } from '../utils/logger';
 import { emailService } from '../services/email.service';
 
@@ -154,7 +154,7 @@ export const paymongoController = {
         });
       }
 
-      const transactionId = generateTransactionId();
+      const transactionId = await generateSequentialTransactionId();
       const orNumber = generateOrNumber();
       const amount = parseFloat(intent.amount.toString());
 
@@ -262,7 +262,7 @@ export async function handlePaymongoWebhook(req: Request, res: Response) {
         });
       }
 
-      const transactionId = generateTransactionId();
+      const transactionId = await generateSequentialTransactionId();
       const orNumber = generateOrNumber();
       const amount = parseFloat(intent.amount.toString());
 
