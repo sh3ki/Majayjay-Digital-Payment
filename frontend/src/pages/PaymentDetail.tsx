@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Card, CardContent, Grid, Button, Chip, Divider,
-  CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions,
+  Box, Typography, Grid, Button,
+  CircularProgress, Alert,
 } from '@mui/material';
-import { ArrowBack, Print, Download, QrCode2 } from '@mui/icons-material';
-import { QRCodeSVG } from 'qrcode.react';
+import { ArrowBack, Print, Download } from '@mui/icons-material';
 import { paymentsService } from '../services/payments.service';
 import { Payment } from '../types';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
-import StatusBadge from '../components/common/StatusBadge';
+import { formatCurrency, formatDateTime, formatDate, formatTime } from '../utils/formatters';
 import api from '../services/api';
 
 const PaymentDetail: React.FC = () => {
@@ -19,9 +17,6 @@ const PaymentDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
-  const [qrOpen, setQrOpen] = useState(false);
-  const [paymentQrUrl, setPaymentQrUrl] = useState<string | null>(null);
-  const [qrLoading, setQrLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -29,20 +24,6 @@ const PaymentDetail: React.FC = () => {
       if (r.data) setPayment(r.data);
     }).catch(() => setError('Failed to load payment')).finally(() => setLoading(false));
   }, [id]);
-
-  const handleGenerateQR = async () => {
-    if (!payment) return;
-    setQrLoading(true);
-    try {
-      const res = await paymentsService.generatePaymentQR(payment.id);
-      setPaymentQrUrl(res.data?.qrImageDataUrl || null);
-      setQrOpen(true);
-    } catch {
-      setError('Failed to generate QR code');
-    } finally {
-      setQrLoading(false);
-    }
-  };
 
   const handleDownloadPDF = async () => {
     if (!payment) return;
@@ -72,16 +53,36 @@ const PaymentDetail: React.FC = () => {
   const payer = payment.payer as { firstName?: string; lastName?: string; email?: string };
   const method = payment.method as { methodName?: string };
   const bill = payment.bill as { billNumber?: string };
-  const receipt = payment.receipt as { orNumber?: string; issuedAt?: string; orData?: unknown; receiptId?: string } | null;
+  const receipt = payment.receipt as { orNumber?: string; issuedAt?: string; orData?: any; receiptId?: string; createdAt?: string } | null;
+
+  // build items list: prefer bill items (to get feeName/description/category), fallback to OR data items
+  const items: Array<any> = [];
+  if ((payment.bill as any)?.items && (payment.bill as any).items.length) {
+    (payment.bill as any).items.forEach((it: any) => {
+      items.push({
+        feeName: it.feeName || (it.fee && it.fee.feeName) || '',
+        description: (it.fee && it.fee.description) || it.description || '',
+        category: (it.fee && it.fee.category && it.fee.category.categoryName) || it.categoryName || '',
+        amount: it.amount,
+      });
+    });
+  } else if (receipt?.orData?.items && receipt.orData.items.length) {
+    receipt.orData.items.forEach((it: any) => items.push({ feeName: it.feeName || it.description || '', description: it.description || '', category: it.category || '', amount: it.amount }));
+  } else {
+    items.push({ description: payment.notes || 'Payment', amount: payment.amount });
+  }
+
+  // include penalties if present in OR data or bill
+  const penaltiesAmount = receipt?.orData?.penalties ? Number(receipt.orData.penalties) : ( (payment.bill as any)?.currentPenaltyTotal ?? (payment.bill as any)?.penaltyAmount ?? 0 );
+  if (penaltiesAmount && Number(penaltiesAmount) > 0) {
+    items.push({ feeName: 'Penalties', description: '', category: '', amount: Number(penaltiesAmount) });
+  }
 
   return (
     <Box>
-      <Box className="page-header">
+      <Box className="page-header no-print" display="flex" justifyContent="space-between" alignItems="center">
         <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)}>Back</Button>
         <Box display="flex" gap={1}>
-          <Button startIcon={<QrCode2 />} onClick={handleGenerateQR} disabled={qrLoading} variant="outlined">
-            {qrLoading ? 'Generating...' : 'QR Code'}
-          </Button>
           {receipt && (
             <Button startIcon={<Download />} onClick={handleDownloadPDF} disabled={downloading} variant="contained" sx={{ bgcolor: '#1565C0' }}>
               {downloading ? 'Downloading...' : 'Download PDF'}
@@ -92,104 +93,114 @@ const PaymentDetail: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={7}>
-          <Card>
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                <Typography variant="h6" fontWeight={700} color="#0D47A1">Payment Details</Typography>
-                <StatusBadge status={payment.status} />
-              </Box>
+        <Grid item xs={12} md={12}>
+          <Box id="receipt-wrapper" sx={{ maxWidth: 720, mx: 'auto', border: '1px solid #000', p: 2, bgcolor: '#fff' }}>
+            <Box sx={{ borderBottom: '1px solid #000', pb: 1, mb: 1 }}>
+              <Typography align="center" fontWeight={800} fontSize={24}>OFFICIAL RECEIPT</Typography>
+              <Typography align="center" fontWeight={700} fontSize={12}>REPUBLIC OF THE PHILIPPINES</Typography>
+              <Typography align="center" fontWeight={700} fontSize={12}>OFFICE OF THE TREASURER</Typography>
+              <Typography align="center" fontWeight={700} fontSize={12}>PROVINCE OF LAGUNA</Typography>
+            </Box>
 
-              <Box mb={2}>
-                <Typography variant="caption" color="text.secondary">Transaction ID</Typography>
-                <Typography fontFamily="monospace" fontWeight={600} fontSize={13}>{payment.transactionId}</Typography>
-              </Box>
-
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Payer</Typography>
-                  <Typography fontWeight={600}>{payer?.firstName} {payer?.lastName}</Typography>
-                  <Typography variant="body2" color="text.secondary">{payer?.email}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Bill Number</Typography>
-                  <Typography fontFamily="monospace" fontWeight={600}>{bill?.billNumber || 'N/A'}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Payment Method</Typography>
-                  <Typography fontWeight={600}>{method?.methodName}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Payment Date</Typography>
-                  <Typography>{formatDateTime(payment.paymentDate)}</Typography>
-                </Grid>
-                {payment.referenceNumber && (
-                  <Grid item xs={12}>
-                    <Typography variant="caption" color="text.secondary">Reference Number</Typography>
-                    <Typography fontFamily="monospace">{payment.referenceNumber}</Typography>
-                  </Grid>
-                )}
-                {payment.notes && (
-                  <Grid item xs={12}>
-                    <Typography variant="caption" color="text.secondary">Notes</Typography>
-                    <Typography>{payment.notes}</Typography>
-                  </Grid>
-                )}
+            <Grid container spacing={1} sx={{ mb: 1 }}>
+              <Grid item xs={8}>
+                <Box sx={{ border: '1px solid #000', p: 1 }}>
+                  <Typography variant="caption">DATE ISSUED:</Typography>
+                  <Typography fontFamily="monospace">{receipt?.orData?.date || (receipt?.createdAt ? formatDate(receipt.createdAt) : formatDate(payment.createdAt))}</Typography>
+                  <Box mt={0.5}>
+                    <Typography variant="caption">DATE:</Typography>
+                    <Typography fontFamily="monospace">{(receipt?.orData?.date && receipt?.orData?.time) ? `${receipt.orData.date} - ${receipt.orData.time}` : formatDateTime(payment.paymentDate)}</Typography>
+                  </Box>
+                </Box>
               </Grid>
+              <Grid item xs={4}>
+                <Box sx={{ border: '1px solid #000', p: 1, height: '100%' }}>
+                  <Typography variant="caption">O.R. No.</Typography>
+                  <Typography fontFamily="monospace" fontWeight={700} fontSize={16}>{receipt?.orNumber}</Typography>
+                  <Box mt={0.5}>
+                    <Typography variant="caption">Transaction No.</Typography>
+                    <Typography fontFamily="monospace">{payment.transactionId}</Typography>
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
 
-              <Divider sx={{ my: 2 }} />
+            <Grid container spacing={1} sx={{ mb: 1 }}>
+              <Grid item xs={8}>
+                <Box sx={{ border: '1px solid #000', p: 1 }}>
+                  <Typography variant="caption">BILL NO.:</Typography>
+                  <Typography fontFamily="monospace">{(payment.bill as any)?.billNumber || '-'}</Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={4}>
+                <Box sx={{ border: '1px solid #000', p: 1 }}>
+                  <Typography variant="caption">FUND</Typography>
+                  <Typography>-</Typography>
+                </Box>
+              </Grid>
+            </Grid>
 
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6" fontWeight={700}>Amount Paid</Typography>
-                <Typography variant="h4" fontWeight={700} color="#1565C0">
-                  {formatCurrency(parseFloat(String(payment.amount)))}
-                </Typography>
+            <Box sx={{ border: '1px solid #000', p: 1, mb: 1 }}>
+              <Typography variant="caption">PAYOR:</Typography>
+              <Typography fontFamily="monospace">{receipt?.orData?.payerName || `${payer?.firstName || ''} ${payer?.lastName || ''}`}</Typography>
+              <Typography variant="caption">{payer?.email || receipt?.orData?.payerReference || ''}</Typography>
+            </Box>
+
+            <Box sx={{ border: '1px solid #000', mb: 1 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ border: '1px solid #000', padding: 6, width: 40, textAlign: 'center' }}>NO</th>
+                    <th style={{ border: '1px solid #000', padding: 6, textAlign: 'left' }}>FEE NAME</th>
+                    <th style={{ border: '1px solid #000', padding: 6, width: 140, textAlign: 'right' }}>AMOUNT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it: any, idx: number) => (
+                    <tr key={idx}>
+                      <td style={{ border: '1px solid #000', padding: 8, textAlign: 'center' }}>{idx + 1}</td>
+                      <td style={{ border: '1px solid #000', padding: 8 }}>{it.feeName || it.description || ''}</td>
+                      <td style={{ border: '1px solid #000', padding: 8, textAlign: 'right' }}>{formatCurrency(it.amount || 0)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Box>
+
+            <Grid container spacing={1} sx={{ mb: 1 }}>
+              <Grid item xs={8}>
+                <Box sx={{ border: '1px solid #000', p: 1 }}>
+                  <Typography variant="caption">PAYMENT METHOD</Typography>
+                  <Typography>{receipt?.orData?.paymentMethod || method?.methodName || ''}</Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={4}>
+                <Box sx={{ border: '1px solid #000', p: 1, height: '100%' }}>
+                  <Typography variant="caption">TOTAL</Typography>
+                  <Typography fontWeight={700} fontSize={18} textAlign="right">{formatCurrency(payment.amount)}</Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            <Box sx={{ border: '1px solid #000', p: 1, mt: 1 }}>
+              <Typography>RECEIVED THE AMOUNT STATED ABOVE BY:</Typography>
+              <Box display="flex" justifyContent="flex-end" mt={2}>
+                <Box textAlign="center">
+                  <Typography variant="body2" sx={{ mb: 0.25 }}>{receipt?.orData?.cashier || (payment.cashier ? `${payment.cashier.firstName} ${payment.cashier.lastName}` : '')}</Typography>
+                  <Box sx={{ borderBottom: '1px solid #000', width: 220, height: 0, mt: 0.5 }} />
+                  <Typography variant="caption" display="block" mt={0.25}>CASHIER</Typography>
+                </Box>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
 
-        <Grid item xs={12} md={5}>
-          {receipt && (
-            <Card sx={{ background: '#E3F2FD' }}>
-              <CardContent>
-                <Typography variant="h6" fontWeight={700} color="#0D47A1" mb={2}>Official Receipt</Typography>
-                <Box mb={1}>
-                  <Typography variant="caption" color="text.secondary">OR Number</Typography>
-                  <Typography fontWeight={700} fontSize={20} fontFamily="monospace" color="#0D47A1">
-                    {receipt.orNumber}
-                  </Typography>
-                </Box>
-                <Box mb={1}>
-                  <Typography variant="caption" color="text.secondary">Issued At</Typography>
-                  <Typography>{receipt.issuedAt ? formatDateTime(receipt.issuedAt) : 'N/A'}</Typography>
-                </Box>
-                <Divider sx={{ my: 1.5 }} />
-                <Typography variant="caption" color="text.secondary">
-                  This official receipt is valid proof of payment.
-                </Typography>
-              </CardContent>
-            </Card>
-          )}
+            <Box mt={1}>
+              <Typography variant="caption" align="center">NOTE: This official receipt is valid for proof of payment</Typography>
+            </Box>
+          </Box>
         </Grid>
       </Grid>
 
-      <Dialog open={qrOpen} onClose={() => setQrOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Payment QR Code</DialogTitle>
-        <DialogContent sx={{ textAlign: 'center', py: 3 }}>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-            Scan to view this payment: <strong>{payment?.transactionId}</strong>
-          </Typography>
-          {paymentQrUrl ? (
-            <img src={paymentQrUrl} alt="Payment QR Code" style={{ maxWidth: 240, width: '100%' }} />
-          ) : (
-            <QRCodeSVG value={`${window.location.origin}/payments/${payment?.id}`} size={220} />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setQrOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      
     </Box>
   );
 };
