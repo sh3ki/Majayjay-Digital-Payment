@@ -5,7 +5,7 @@ import { authenticate, authorize } from '../middlewares/auth.middleware';
 const router = Router();
 
 router.use(authenticate);
-router.use(authorize('admin', 'cashier', 'department_viewer'));
+router.use(authorize('admin', 'cashier', 'collector', 'department_viewer'));
 
 router.get('/collection', reportsController.getCollectionReport);
 router.get('/daily-summary', reportsController.getDailySummary);
