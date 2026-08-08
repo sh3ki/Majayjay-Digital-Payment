@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logo from '../../public/majayjay logo.jpg';
 import { useNavigate } from 'react-router-dom';
 import {
   AppBar, Toolbar, Typography, IconButton, Box, Menu, MenuItem,
@@ -44,8 +45,9 @@ const Navbar: React.FC<Props> = ({ onMenuToggle, sidebarWidth = 0 }) => {
         </IconButton>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
+          <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
           <Typography variant="h6" fontWeight={700} fontSize={16} noWrap>
-            🏛️ Majayjay Digital Payment System
+            Majayjay Digital Payment System
           </Typography>
         </Box>
 
