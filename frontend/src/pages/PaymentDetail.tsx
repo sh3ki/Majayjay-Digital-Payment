@@ -32,6 +32,35 @@ const PaymentDetail: React.FC = () => {
     if (!receiptRef) return;
     setDownloading(true);
     try {
+      // Try to generate PDF client-side from the receipt DOM so it matches the on-screen layout exactly.
+      // Uses dynamic imports so this will fall back to server PDF if the libs are not installed.
+      const el = document.getElementById('receipt-wrapper');
+      if (!el) throw new Error('Receipt element not found');
+
+      try {
+        // Indirect dynamic import using new Function to avoid Vite's static import analysis
+        const dynamicImport = (p: string) => new Function(`return import('${p}')`)() as Promise<any>;
+        const html2canvasModule = await dynamicImport('html2canvas');
+        const html2canvas = html2canvasModule.default || html2canvasModule;
+        const jspdfModule = await dynamicImport('jspdf');
+        const jsPDF = jspdfModule.jsPDF || jspdfModule.default || jspdfModule;
+
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const imgProps = (pdf as any).getImageProperties ? (pdf as any).getImageProperties(imgData) : { width: canvas.width, height: canvas.height };
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`OR-${receipt?.orNumber || receiptRef}.pdf`);
+        setDownloading(false);
+        return;
+      } catch (err) {
+        // If client-side libs are missing or generation failed, fall back to server-provided PDF
+        console.warn('Client-side PDF generation failed, falling back to server PDF', err);
+      }
+
+      // Fallback: download server-generated PDF
       const response = await api.get(`/payments/receipt/${receiptRef}/download`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
@@ -39,7 +68,7 @@ const PaymentDetail: React.FC = () => {
       link.download = `OR-${receipt?.orNumber || receiptRef}.pdf`;
       link.click();
       window.URL.revokeObjectURL(url);
-    } catch {
+    } catch (ex) {
       setError('Failed to download PDF');
     } finally {
       setDownloading(false);
@@ -109,7 +138,12 @@ const PaymentDetail: React.FC = () => {
                   <Typography fontFamily="monospace">{receipt?.orData?.date || (receipt?.createdAt ? formatDate(receipt.createdAt) : formatDate(payment.createdAt))}</Typography>
                   <Box mt={0.5}>
                     <Typography variant="caption">DATE:</Typography>
-                    <Typography fontFamily="monospace">{(receipt?.orData?.date && receipt?.orData?.time) ? `${receipt.orData.date} - ${receipt.orData.time}` : formatDateTime(payment.paymentDate)}</Typography>
+                    <Typography fontFamily="monospace">
+                      {receipt?.orData?.date || (receipt?.createdAt ? formatDate(receipt.createdAt) : formatDate(payment.createdAt))}
+                      {(receipt?.orData?.time || payment.paymentDate) && (
+                        <span className="receipt-time"> - {receipt?.orData?.time || formatTime(payment.paymentDate)}</span>
+                      )}
+                    </Typography>
                   </Box>
                 </Box>
               </Grid>
