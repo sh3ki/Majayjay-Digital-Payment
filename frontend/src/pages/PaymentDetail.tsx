@@ -45,16 +45,71 @@ const PaymentDetail: React.FC = () => {
         const jspdfModule = await dynamicImport('jspdf');
         const jsPDF = jspdfModule.jsPDF || jspdfModule.default || jspdfModule;
 
-        const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const imgProps = (pdf as any).getImageProperties ? (pdf as any).getImageProperties(imgData) : { width: canvas.width, height: canvas.height };
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`OR-${receipt?.orNumber || receiptRef}.pdf`);
-        setDownloading(false);
-        return;
+        // Clone receipt and render at A4 width to match print layout exactly
+        const mmToPx = (mm: number) => mm * (96 / 25.4);
+        const a4WidthMm = 210;
+        const a4HeightMm = 297;
+        const a4WidthPx = Math.round(mmToPx(a4WidthMm));
+
+        const clone = el.cloneNode(true) as HTMLElement;
+        // apply styles to match A4 print layout
+        clone.style.boxShadow = 'none';
+        clone.style.background = 'white';
+        clone.style.width = `${a4WidthPx}px`;
+        clone.style.maxWidth = 'none';
+        // create offscreen container
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = `${a4WidthPx}px`;
+        container.appendChild(clone);
+        document.body.appendChild(container);
+
+        try {
+          const scale = 2; // high-res
+          const canvas = await html2canvas(clone, { scale, backgroundColor: '#ffffff', useCORS: true });
+
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = a4WidthMm; // mm
+
+          // calculate dimensions
+          const pxPerMm = canvas.width / pdfWidth;
+          const totalPdfHeightMm = canvas.height / pxPerMm;
+
+          if (totalPdfHeightMm <= a4HeightMm) {
+            // single page
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, totalPdfHeightMm);
+          } else {
+            // multi-page handling: slice canvas
+            const pageHeightPx = Math.floor(pxPerMm * a4HeightMm);
+            let remainingHeightPx = canvas.height;
+            let position = 0;
+            while (remainingHeightPx > 0) {
+              const tmpCanvas = document.createElement('canvas');
+              tmpCanvas.width = canvas.width;
+              const sliceHeight = Math.min(pageHeightPx, remainingHeightPx);
+              tmpCanvas.height = sliceHeight;
+              const ctx = tmpCanvas.getContext('2d') as CanvasRenderingContext2D;
+              ctx.drawImage(canvas, 0, position, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+              const sliceData = tmpCanvas.toDataURL('image/png');
+              const sliceHeightMm = sliceHeight / pxPerMm;
+              pdf.addImage(sliceData, 'PNG', 0, 0, pdfWidth, sliceHeightMm);
+              remainingHeightPx -= sliceHeight;
+              position += sliceHeight;
+              if (remainingHeightPx > 0) pdf.addPage();
+            }
+          }
+
+          const fileName = `${payment.transactionId || receipt?.orNumber || receiptRef}`;
+          pdf.save(`${fileName}.pdf`);
+          setDownloading(false);
+          return;
+        } finally {
+          // cleanup
+          document.body.removeChild(container);
+        }
       } catch (err) {
         // If client-side libs are missing or generation failed, fall back to server-provided PDF
         console.warn('Client-side PDF generation failed, falling back to server PDF', err);
@@ -65,7 +120,8 @@ const PaymentDetail: React.FC = () => {
       const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `OR-${receipt?.orNumber || receiptRef}.pdf`;
+      const fallbackFileName = `${payment.transactionId || receipt?.orNumber || receiptRef}.pdf`;
+      link.download = fallbackFileName;
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (ex) {
