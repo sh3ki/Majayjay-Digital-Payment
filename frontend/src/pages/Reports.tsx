@@ -164,31 +164,12 @@ const Reports: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const clearPrintSelection = () => {
-    document.body.classList.remove('reports-printing');
-    document.querySelectorAll('.reports-print-section.print-selected').forEach((node) => {
-      node.classList.remove('print-selected');
-    });
-  };
-
-  const printSection = (elementId: string) => {
-    clearPrintSelection();
-    const section = document.getElementById(elementId);
-    if (!section) return;
-    section.classList.add('print-selected');
-    document.body.classList.add('reports-printing');
-
-    // Let layout settle before opening print dialog so charts keep proper dimensions.
+  const printSection = () => {
+    // Print only the currently visible tab section.
     setTimeout(() => {
       window.print();
     }, 120);
   };
-
-  useEffect(() => {
-    const onAfterPrint = () => clearPrintSelection();
-    window.addEventListener('afterprint', onAfterPrint);
-    return () => window.removeEventListener('afterprint', onAfterPrint);
-  }, []);
 
   return (
     <Box className="reports-page-root">
@@ -209,15 +190,13 @@ const Reports: React.FC = () => {
             display: none !important;
           }
 
-          .reports-print-section {
+          .reports-print-section .MuiAlert-root,
+          .reports-print-section button,
+          .reports-print-section .MuiFormControl-root {
             display: none !important;
           }
 
-          .reports-print-section.print-selected {
-            display: block !important;
-          }
-
-          .reports-print-section.print-selected .print-header {
+          .reports-print-section .print-header {
             display: block !important;
             margin-bottom: 12px;
             padding-bottom: 8px;
@@ -271,10 +250,9 @@ const Reports: React.FC = () => {
       {tab === 0 && (
         <div id="reports-print-tab-0" className="reports-print-section">
           <Box className="print-header">
-            <Typography variant="h5" fontWeight={700} color="#0D47A1">Collection Report</Typography>
-            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
+            <Typography variant="h5" fontWeight={700} color="#0D47A1">Reports - Collection Report</Typography>
           </Box>
-          <Card sx={{ mb: 3 }}>
+          <Card className="reports-no-print" sx={{ mb: 3 }}>
             <CardContent>
               <Box className="reports-print-controls" display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
                 <TextField
@@ -294,7 +272,7 @@ const Reports: React.FC = () => {
                       <Button variant="outlined" startIcon={<Download />} onClick={exportCSV} size="small">Export CSV</Button>
                     </Tooltip>
                     <Tooltip title="Print (A4)">
-                      <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-0')}>
+                      <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                         Print
                       </Button>
                     </Tooltip>
@@ -444,10 +422,9 @@ const Reports: React.FC = () => {
       {tab === 2 && (
         <div id="reports-print-tab-2" className="reports-print-section">
           <Box className="print-header">
-            <Typography variant="h5" fontWeight={700} color="#0D47A1">Collection Per Category</Typography>
-            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
+            <Typography variant="h5" fontWeight={700} color="#0D47A1">Reports - Collection Per Category</Typography>
           </Box>
-          <Card sx={{ mb: 3 }}>
+          <Card className="reports-no-print" sx={{ mb: 3 }}>
             <CardContent>
               <Box className="reports-print-controls" display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
                 <TextField
@@ -462,7 +439,7 @@ const Reports: React.FC = () => {
                   {loading ? <CircularProgress size={20} color="inherit" /> : 'Generate'}
                 </Button>
                 <Tooltip title="Print (A4)">
-                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-2')}>
+                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                     Print
                   </Button>
                 </Tooltip>
@@ -605,8 +582,7 @@ const Reports: React.FC = () => {
       {tab === 1 && (
         <div id="reports-print-tab-1" className="reports-print-section">
           <Box className="print-header">
-            <Typography variant="h5" fontWeight={700} color="#0D47A1">Analytics Dashboard</Typography>
-            <Typography variant="body2" color="text.secondary">Date Range: {startDate} to {endDate}</Typography>
+            <Typography variant="h5" fontWeight={700} color="#0D47A1">Reports - Analytics Dashboard</Typography>
           </Box>
           {analyticsLoading ? (
             <Box display="flex" justifyContent="center" p={6}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
@@ -614,7 +590,7 @@ const Reports: React.FC = () => {
             <>
               <Box className="reports-print-controls" display="flex" justifyContent="flex-end" mb={2}>
                 <Tooltip title="Print (A4)">
-                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-1')}>
+                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                     Print
                   </Button>
                 </Tooltip>
@@ -670,7 +646,7 @@ const Reports: React.FC = () => {
                     <CardContent>
                       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                         <Typography variant="h6" fontWeight={600} color="#0D47A1">Monthly Revenue</Typography>
-                        <FormControl size="small" sx={{ minWidth: 100 }}>
+                        <FormControl className="reports-no-print" size="small" sx={{ minWidth: 100 }}>
                           <InputLabel>Year</InputLabel>
                           <Select value={revYear} label="Year" onChange={(e) => { const y = Number(e.target.value); setRevYear(y); loadRevenue(y); }}>
                             {[new Date().getFullYear(), new Date().getFullYear() - 1, new Date().getFullYear() - 2].map((y) => (
