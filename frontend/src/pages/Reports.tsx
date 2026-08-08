@@ -177,14 +177,20 @@ const Reports: React.FC = () => {
         .print-header { display: none; }
 
         @media print {
-          @page { size: A4; margin: 12mm; }
+          @page { size: A4; margin: 10mm; }
 
           html, body {
             background: #fff !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             overflow: visible !important;
+            height: auto !important;
           }
+
+          /* ensure app root and container don't limit printed height */
+          #root, .reports-page-root { height: auto !important; min-height: auto !important; }
+
+          .reports-print-section { page-break-after: auto; page-break-before: auto; }
 
           .reports-no-print,
           .reports-print-controls {
@@ -218,23 +224,34 @@ const Reports: React.FC = () => {
             page-break-inside: avoid;
           }
 
-          .reports-print-section .MuiGrid-item,
-          .reports-print-section .MuiTable-root,
-          .reports-print-section .recharts-wrapper {
-            break-inside: avoid-page;
-            page-break-inside: avoid;
-          }
-
+          /* Allow tables to split across pages and repeat headers */
           .reports-print-section table {
             width: 100%;
             border-collapse: collapse;
+            page-break-inside: auto;
+            break-inside: auto;
           }
+
+          .reports-print-section thead { display: table-header-group; }
+          .reports-print-section tfoot { display: table-footer-group; }
 
           .reports-print-section th,
           .reports-print-section td {
             border: 1px solid #E0E0E0;
             padding: 6px 8px;
           }
+
+          /* Keep whole cards together but allow large tables to flow across pages */
+          .reports-print-section .MuiCard-root {
+            box-shadow: none !important;
+            border: 1px solid #DCE3EA;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            margin-bottom: 10px;
+          }
+
+          /* Ensure boxes and containers don't clip content in print */
+          .reports-print-section * { overflow: visible !important; }
 
           .reports-print-section .recharts-responsive-container {
             width: 100% !important;
