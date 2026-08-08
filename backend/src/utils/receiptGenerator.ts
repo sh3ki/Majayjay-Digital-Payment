@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import prisma from '../config/database';
 
 export function generateOrNumber(): string {
   const now = new Date();
@@ -26,6 +27,30 @@ export function generateBillNumber(): string {
 export function generateChargeNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
   return `CHG-${ts}`;
+}
+
+export async function generateSequentialBillNumber(): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const monthIndex = now.getMonth();
+  const month = String(monthIndex + 1).padStart(2, '0');
+  const start = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+  const end = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+  const count = await prisma.bill.count({ where: { billDate: { gte: start, lte: end } } });
+  const seq = String(count + 1).padStart(5, '0');
+  return `BILL-${year}-${month}-${seq}`;
+}
+
+export async function generateSequentialTransactionId(): Promise<string> {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const start = new Date(y, now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  const end = new Date(y, now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const count = await prisma.payment.count({ where: { paymentDate: { gte: start, lte: end } } });
+  const seq = String(count + 1).padStart(6, '0');
+  return `TXN-${y}${m}${d}-${seq}`;
 }
 
 export interface ReceiptData {
