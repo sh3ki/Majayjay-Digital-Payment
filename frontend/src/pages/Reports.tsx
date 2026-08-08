@@ -4,6 +4,7 @@ import {
   CircularProgress, Alert, Table, TableHead, TableBody, TableRow, TableCell,
   Tooltip, Tabs, Tab, Chip, Select, MenuItem, FormControl, InputLabel,
 } from '@mui/material';
+import { Print } from '@mui/icons-material';
 import { Download, TrendingUp, People, AccountBalance, Receipt } from '@mui/icons-material';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer,
@@ -164,6 +165,44 @@ const Reports: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const printSection = (elementId: string, title = 'Report') => {
+    const byId = document.getElementById(elementId);
+    const nodes = document.querySelectorAll(`[data-print-key="${elementId}"]`);
+    const pieces: string[] = [];
+    if (byId) pieces.push(byId.innerHTML);
+    if (nodes && nodes.length > 0) nodes.forEach((n) => pieces.push((n as HTMLElement).innerHTML));
+    if (pieces.length === 0) return;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    const styles = `
+      @page { size: A4; margin: 20mm; }
+      html,body{height:100%;}
+      body{font-family: -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; color:#111; margin:0;}
+      .page{box-sizing:border-box; padding:8mm; width:210mm; min-height:297mm;}
+      table{border-collapse:collapse; width:100%;}
+      table th, table td{border:1px solid #e0e0e0; padding:6px 8px; text-align:left;}
+      h1,h2,h3{color:#0D47A1; margin:0 0 8px 0}
+      svg{max-width:100%; height:auto}
+    `;
+
+    const content = `
+      <div class="page">
+        <h1>${title}</h1>
+        <div>${pieces.join('<hr style="border:none;border-top:1px solid #e0e0e0;margin:12px 0;"/>')}</div>
+      </div>
+    `;
+
+    w.document.write(`<!doctype html><html><head><title>${title}</title><style>${styles}</style></head><body>${content}</body></html>`);
+    w.document.close();
+    // allow time for external resources / svg render
+    setTimeout(() => {
+      w.focus();
+      w.print();
+      // keep window open briefly so user can cancel if needed
+      setTimeout(() => w.close(), 500);
+    }, 600);
+  };
+
   return (
     <Box>
       <Typography variant="h4" fontWeight={700} color="#0D47A1" mb={1}>Reports & Analytics</Typography>
@@ -193,11 +232,19 @@ const Reports: React.FC = () => {
                   {loading ? <CircularProgress size={20} color="inherit" /> : 'Generate Report'}
                 </Button>
                 {report && (
-                  <Tooltip title="Export transactions to CSV">
-                    <Button variant="outlined" startIcon={<Download />} onClick={exportCSV} size="small">Export CSV</Button>
-                  </Tooltip>
+                  <>
+                    <Tooltip title="Export transactions to CSV">
+                      <Button variant="outlined" startIcon={<Download />} onClick={exportCSV} size="small">Export CSV</Button>
+                    </Tooltip>
+                    <Tooltip title="Print (A4)">
+                      <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-0', `Collection Report ${startDate} to ${endDate}`)}>
+                        Print
+                      </Button>
+                    </Tooltip>
+                  </>
                 )}
               </Box>
+              <div id="reports-print-tab-0">
               <Box display="flex" gap={1} flexWrap="wrap">
                 <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', mr: 0.5 }}>Quick:</Typography>
                 {datePresets.map((p) => (
@@ -208,13 +255,14 @@ const Reports: React.FC = () => {
                   </Button>
                 ))}
               </Box>
+              </div>
             </CardContent>
           </Card>
 
           {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
           {report && (
-            <>
+            <div data-print-key="reports-print-tab-0">
               <Grid container spacing={3} mb={3}>
                 <Grid item xs={12} sm={4}>
                   <Card sx={{ background: '#E3F2FD' }}>
@@ -331,7 +379,7 @@ const Reports: React.FC = () => {
                   </Box>
                 </CardContent>
               </Card>
-            </>
+            </div>
           )}
         </>
       )}
@@ -352,12 +400,18 @@ const Reports: React.FC = () => {
                 <Button variant="contained" onClick={loadReport} disabled={loading}>
                   {loading ? <CircularProgress size={20} color="inherit" /> : 'Generate'}
                 </Button>
+                <Tooltip title="Print (A4)">
+                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-2', `Collection per Category ${startDate} to ${endDate}`)}>
+                    Print
+                  </Button>
+                </Tooltip>
               </Box>
             </CardContent>
           </Card>
 
           {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
+          <div data-print-key="reports-print-tab-2">
           <Grid container spacing={3} mb={3}>
             <Grid item xs={12} sm={4}>
               <Card sx={{ background: '#E3F2FD' }}>
@@ -482,6 +536,7 @@ const Reports: React.FC = () => {
               </CardContent>
             </Card>
           )}
+          </div>
         </>
       )}
 
@@ -492,6 +547,14 @@ const Reports: React.FC = () => {
             <Box display="flex" justifyContent="center" p={6}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
           ) : analytics ? (
             <>
+              <Box display="flex" justifyContent="flex-end" mb={2}>
+                <Tooltip title="Print (A4)">
+                  <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={() => printSection('reports-print-tab-1', `Analytics Dashboard ${startDate} to ${endDate}`)}>
+                    Print
+                  </Button>
+                </Tooltip>
+              </Box>
+              <div data-print-key="reports-print-tab-1">
               {/* KPI Cards */}
               <Grid container spacing={3} mb={3}>
                 {[
@@ -615,6 +678,7 @@ const Reports: React.FC = () => {
                   </Table>
                 </CardContent>
               </Card>
+              </div>
             </>
           ) : (
             <Alert severity="info">No analytics data available. Load the page again after transactions exist.</Alert>
