@@ -24,6 +24,15 @@ export const formatDateTime = (dateStr: string): string => {
   });
 };
 
+export const formatTime = (dateStr: string): string => {
+  return new Date(dateStr).toLocaleTimeString('en-PH', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+};
+
 export const formatShortDate = (dateStr: string): string => {
   return new Date(dateStr).toLocaleDateString('en-PH', {
     year: 'numeric',
