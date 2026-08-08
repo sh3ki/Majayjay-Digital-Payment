@@ -18,7 +18,7 @@ router.put('/users/:id/status', authorize('admin'), adminController.updateUserSt
 router.delete('/users/:id', authorize('admin'), adminController.deleteUser);
 
 // Fees (admin only)
-router.get('/fees', authorize('admin', 'cashier', 'department_viewer'), adminController.getFees);
+router.get('/fees', authorize('admin', 'cashier', 'collector', 'department_viewer'), adminController.getFees);
 router.post('/fees', authorize('admin'), adminController.createFee);
 router.put('/fees/:id', authorize('admin'), adminController.updateFee);
 router.put('/fees/:id/toggle', authorize('admin'), adminController.toggleFeeStatus);
