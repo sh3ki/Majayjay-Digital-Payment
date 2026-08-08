@@ -1,5 +1,5 @@
 import prisma from '../config/database';
-import { generateBillNumber } from '../utils/receiptGenerator';
+import { generateSequentialBillNumber } from '../utils/receiptGenerator';
 import { calculatePenalties, calculateTotalPenalty } from '../utils/penaltyCalculator';
 
 export interface CreateBillDto {
@@ -118,7 +118,7 @@ export const billsService = {
     );
 
     const totalAmount = feeDetails.reduce((sum, f) => sum + f.amount, 0);
-    const billNumber = generateBillNumber();
+    const billNumber = await generateSequentialBillNumber();
 
     const bill = await prisma.bill.create({
       data: {
@@ -195,6 +195,10 @@ export const billsService = {
         { payer: { lastName: { contains: query, mode: 'insensitive' } } },
         { payer: { email: { contains: query, mode: 'insensitive' } } },
         { payer: { contactNumber: { contains: query, mode: 'insensitive' } } },
+        // search by fee name on bill items
+        { items: { some: { fee: { feeName: { contains: query, mode: 'insensitive' } } } } },
+        // search by fee category name (if fee -> category relation exists)
+        { items: { some: { fee: { category: { categoryName: { contains: query, mode: 'insensitive' } } } } } },
       ],
     };
 
