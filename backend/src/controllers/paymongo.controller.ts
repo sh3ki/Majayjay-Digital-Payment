@@ -59,6 +59,16 @@ export const paymongoController = {
       }, 'Payment initiated');
     } catch (err) {
       logger.error(`[paymongo] initiatePayment error: ${(err as Error).message}`);
+      const e = err as any;
+      if (e.status && e.message && e.message.startsWith('PayMongo')) {
+        // If PayMongo indicates the source type for Maya is invalid, return a clearer client message
+        const em = (e.message as string).toLowerCase();
+        if (em.includes('maya') && em.includes('invalid')) {
+          return sendError(res, 'PayMaya is not supported by your PayMongo account. Please use GCash or contact payment provider.', 422);
+        }
+        // send PayMongo error details to client for easier debugging
+        return sendError(res, e.message, e.status);
+      }
       next(err);
     }
   },
