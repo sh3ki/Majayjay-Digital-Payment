@@ -22,23 +22,64 @@ export const paymongoService = {
     failedUrl: string,
   ) {
     const amountCentavos = Math.round(amount * 100);
-    const response = await axios.post(
-      `${PAYMONGO_BASE}/sources`,
-      {
-        data: {
-          attributes: {
-            amount: amountCentavos,
-            currency: 'PHP',
-            type,
-            redirect: { success: successUrl, failed: failedUrl },
-            billing: { name: 'Majayjay LGU Billing', email: env.EMAIL_FROM },
-            statement_descriptor: `MAJAYJAY-${billNumber}`,
-          },
+    const payload = {
+      data: {
+        attributes: {
+          amount: amountCentavos,
+          currency: 'PHP',
+          type,
+          redirect: { success: successUrl, failed: failedUrl },
+          billing: { name: 'Majayjay LGU Billing', email: env.EMAIL_FROM },
+          statement_descriptor: `MAJAYJAY-${billNumber}`,
         },
       },
-      { headers: authHeader() },
-    );
-    return response.data.data;
+    };
+
+    try {
+      logger.info('[paymongo] createSource payload', { payload: JSON.stringify(payload), type });
+      const response = await axios.post(`${PAYMONGO_BASE}/sources`, payload, { headers: authHeader() });
+      return response.data.data;
+    } catch (err: any) {
+      logger.error('[paymongo] createSource error response', { response: err.response?.data });
+      // If PayMongo rejects `paymaya` as invalid, attempt with alternate type 'maya'
+      if (type === 'paymaya' && err.response && err.response.data) {
+        const pd = err.response.data;
+        const msg = pd.errors ? pd.errors.map((e: any) => e.detail || e.message).join('; ') : pd.message || JSON.stringify(pd);
+        if (String(msg).toLowerCase().includes('paymaya') || String(msg).toLowerCase().includes('source_type')) {
+          try {
+            const altPayload = {
+              data: {
+                attributes: {
+                  amount: amountCentavos,
+                  currency: 'PHP',
+                  type: 'maya',
+                  redirect: { success: successUrl, failed: failedUrl },
+                  billing: { name: 'Majayjay LGU Billing', email: env.EMAIL_FROM },
+                  statement_descriptor: `MAJAYJAY-${billNumber}`,
+                },
+              },
+            };
+            logger.info('[paymongo] createSource trying fallback payload', { payload: JSON.stringify(altPayload) });
+            const altResponse = await axios.post(`${PAYMONGO_BASE}/sources`, altPayload, { headers: authHeader() });
+            logger.info('[paymongo] Fallback: used type=maya for paymaya source creation');
+            return altResponse.data.data;
+          } catch (e: any) {
+            // fall through to original error handling below
+            err = e;
+          }
+        }
+      }
+
+      if (err.response && err.response.data) {
+        const pd = err.response.data;
+        const message = pd.errors ? pd.errors.map((e: any) => e.detail || e.message).join('; ') : pd.message || JSON.stringify(pd);
+        const status = err.response.status || 500;
+        const error = new Error(`PayMongo createSource failed: ${message}`);
+        (error as any).status = status;
+        throw error;
+      }
+      throw err;
+    }
   },
 
   /**
@@ -56,21 +97,32 @@ export const paymongoService = {
    */
   async createPayment(sourceId: string, amount: number, description: string) {
     const amountCentavos = Math.round(amount * 100);
-    const response = await axios.post(
-      `${PAYMONGO_BASE}/payments`,
-      {
-        data: {
-          attributes: {
-            amount: amountCentavos,
-            currency: 'PHP',
-            description,
-            source: { id: sourceId, type: 'source' },
-          },
+    const payload = {
+      data: {
+        attributes: {
+          amount: amountCentavos,
+          currency: 'PHP',
+          description,
+          source: { id: sourceId, type: 'source' },
         },
       },
-      { headers: authHeader() },
-    );
-    return response.data.data;
+    };
+    try {
+      logger.info('[paymongo] createPayment payload', { payload: JSON.stringify(payload) });
+      const response = await axios.post(`${PAYMONGO_BASE}/payments`, payload, { headers: authHeader() });
+      return response.data.data;
+    } catch (err: any) {
+      logger.error('[paymongo] createPayment error response', { response: err.response?.data });
+      if (err.response && err.response.data) {
+        const pd = err.response.data;
+        const message = pd.errors ? pd.errors.map((e: any) => e.detail || e.message).join('; ') : pd.message || JSON.stringify(pd);
+        const status = err.response.status || 500;
+        const error = new Error(`PayMongo createPayment failed: ${message}`);
+        (error as any).status = status;
+        throw error;
+      }
+      throw err;
+    }
   },
 
   /**
