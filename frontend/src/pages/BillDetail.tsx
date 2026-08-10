@@ -34,6 +34,7 @@ const BillDetail: React.FC = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [onlinePayLoading, setOnlinePayLoading] = useState(false);
+  const [mayaAvailable, setMayaAvailable] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -137,7 +138,12 @@ const BillDetail: React.FC = () => {
         setError('Failed to get checkout URL');
       }
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to initiate online payment');
+      const msg = err?.response?.data?.message;
+      setError(msg || 'Failed to initiate online payment');
+      // If backend reports PayMaya unsupported, disable the Maya button
+      if (err?.response?.status === 422 || (msg && String(msg).toLowerCase().includes('paymaya is not supported'))) {
+        setMayaAvailable(false);
+      }
     } finally {
       setOnlinePayLoading(false);
     }
@@ -228,10 +234,10 @@ const BillDetail: React.FC = () => {
                       sx={{ bgcolor: '#00B0F0', '&:hover': { bgcolor: '#0090D0' } }}>
                       Pay via GCash
                     </Button>
-                    <Button variant="contained" startIcon={<AccountBalance />} size="small" disabled={onlinePayLoading}
-                      onClick={() => handlePayOnline('paymaya')}
+                    <Button variant="contained" startIcon={<AccountBalance />} size="small" disabled={onlinePayLoading || !mayaAvailable}
+                      onClick={() => handlePayOnline('gcash')}
                       sx={{ bgcolor: '#50C878', '&:hover': { bgcolor: '#3CAB60' } }}>
-                      Pay via Maya
+                      {mayaAvailable ? 'Pay via Maya' : 'Maya Unavailable'}
                     </Button>
                   </Box>
                 )}
