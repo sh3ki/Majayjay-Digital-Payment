@@ -115,7 +115,7 @@ const Profile: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Card>
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2 }}>
+              <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" allowScrollButtonsMobile sx={{ px: 2 }}>
                 <Tab icon={<Person fontSize="small" />} iconPosition="start" label="Edit Profile" />
                 <Tab icon={<Security fontSize="small" />} iconPosition="start" label="Change Password" />
               </Tabs>
