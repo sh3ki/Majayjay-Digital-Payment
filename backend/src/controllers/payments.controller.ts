@@ -22,13 +22,13 @@ export const paymentsController = {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const { status, startDate, endDate, paymentMethod } = req.query as Record<string, string>;
+      const { status, search, startDate, endDate, paymentMethod } = req.query as Record<string, string>;
 
       let payerId: number | undefined;
       if (req.user?.role === 'resident') payerId = req.user.sub;
 
       const { payments, total } = await paymentsService.getPayments({
-        page, limit, status, payerId, startDate, endDate, paymentMethod,
+        page, limit, status, payerId, search, startDate, endDate, paymentMethod,
       });
       sendPaginated(res, payments, total, page, limit, 'Payments retrieved');
     } catch (err) {
