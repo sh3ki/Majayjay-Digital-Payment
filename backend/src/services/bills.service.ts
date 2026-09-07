@@ -64,10 +64,11 @@ export const billsService = {
     return { bills, total };
   },
 
-  async getBillSummary(params: { search?: string; item?: string; userRole?: string }) {
-    const { search, item, userRole } = params;
+  async getBillSummary(params: { search?: string; item?: string; userRole?: string; payerId?: number }) {
+    const { search, item, userRole, payerId } = params;
     const where: Record<string, unknown> = {};
     if (userRole === 'cashier') where.status = { not: 'ISSUED' };
+    if (payerId) where.payerId = payerId;
     if (search) {
       where.OR = [
         { billNumber: { contains: search, mode: 'insensitive' } },
@@ -79,6 +80,7 @@ export const billsService = {
     }
     if (item) where.items = { some: { feeName: item } };
     const itemWhere: Record<string, unknown> = userRole === 'cashier' ? { status: { not: 'ISSUED' } } : {};
+    if (payerId) itemWhere.bill = { payerId };
     const [groups, itemRows] = await Promise.all([
       prisma.bill.groupBy({ by: ['status'], where: where as any, _count: { _all: true } }),
       prisma.billItem.findMany({ where: { bill: itemWhere as any }, select: { feeName: true }, distinct: ['feeName'], orderBy: { feeName: 'asc' } }),
