@@ -39,14 +39,14 @@ const Navbar: React.FC<Props> = ({ onMenuToggle, sidebarWidth = 0 }) => {
         boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
       }}
     >
-      <Toolbar>
-        <IconButton color="inherit" edge="start" onClick={onMenuToggle} sx={{ mr: 2, display: { md: 'none' } }}>
+      <Toolbar sx={{ px: { xs: 1, sm: 2 } }}>
+        <IconButton color="inherit" edge="start" onClick={onMenuToggle} sx={{ mr: { xs: 1, sm: 2 }, display: { md: 'none' } }}>
           <MenuIcon />
         </IconButton>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1, minWidth: 0 }}>
           <Box component="img" src={logo} alt="Majayjay logo" sx={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-          <Typography variant="h6" fontWeight={700} fontSize={16} noWrap>
+          <Typography variant="h6" fontWeight={700} fontSize={{ xs: 14, sm: 16 }} noWrap sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Majayjay Digital Payment System
           </Typography>
         </Box>
