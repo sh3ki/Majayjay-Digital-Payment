@@ -12,6 +12,8 @@ import {
 import { reportsService } from '../services/reports.service';
 import { CollectionReport, PaymentMethodBreakdown } from '../types';
 import { formatCurrency, formatDateTime, manilaStartOfDayISO, manilaEndOfDayISO } from '../utils/formatters';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const COLORS = ['#1565C0', '#42A5F5', '#2196F3', '#FFC107', '#4CAF50', '#FF5722', '#9C27B0', '#00BCD4', '#FF9800', '#607D8B'];
 
@@ -65,6 +67,7 @@ const Reports: React.FC = () => {
   const [error, setError] = useState('');
   const [categorySummary, setCategorySummary] = useState<{ categoryName: string; total: number; count: number; payments: Array<any> }[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [exportingPDF, setExportingPDF] = useState(false);
 
   const loadReport = async () => {
     setLoading(true);
@@ -141,27 +144,57 @@ const Reports: React.FC = () => {
     if (arr.length > 0 && !selectedCategory) setSelectedCategory(arr[0].categoryName);
   }, [report]);
 
-  const exportCSV = () => {
-    if (!report) return;
-    const rows = [
-      ['Date', 'Transaction ID', 'Payer', 'OR Number', 'Payment Method', 'Amount'],
-      ...report.payments.map((p) => [
-        formatDateTime(p.paymentDate),
-        p.transactionId,
-        `${(p.payer as { firstName?: string; lastName?: string })?.firstName} ${(p.payer as { firstName?: string; lastName?: string })?.lastName}`,
-        (p.receipt as { orNumber?: string })?.orNumber || '',
-        (p.method as { methodName?: string })?.methodName || '',
-        String(p.amount),
-      ]),
-    ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `collection-report-${startDate}-to-${endDate}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportPDF = async () => {
+    const section = document.getElementById(`reports-print-tab-${tab}`);
+    if (!section) return;
+
+    setExportingPDF(true);
+    try {
+      await (document as any).fonts?.ready;
+      const canvas = await html2canvas(section, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        onclone: (clonedDocument) => {
+          clonedDocument.querySelectorAll('.reports-no-print, .reports-print-controls').forEach((element) => {
+            (element as HTMLElement).style.display = 'none';
+          });
+          clonedDocument.querySelectorAll('.print-header').forEach((element) => {
+            (element as HTMLElement).style.display = 'block';
+          });
+        },
+      });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const marginMm = 10;
+      const contentWidthMm = 210 - marginMm * 2;
+      const contentHeightMm = 297 - marginMm * 2;
+      const pxPerMm = canvas.width / contentWidthMm;
+      const pageHeightPx = Math.floor(contentHeightMm * pxPerMm);
+      let renderedPx = 0;
+      let firstPage = true;
+
+      while (renderedPx < canvas.height) {
+        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeightPx;
+        const context = pageCanvas.getContext('2d');
+        if (!context) throw new Error('Could not get canvas context');
+        context.drawImage(canvas, 0, renderedPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+
+        if (!firstPage) pdf.addPage('a4', 'p');
+        pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', marginMm, marginMm, contentWidthMm, sliceHeightPx / pxPerMm);
+        renderedPx += sliceHeightPx;
+        firstPage = false;
+      }
+
+      pdf.save(`collection-report-${startDate}-to-${endDate}.pdf`);
+    } catch {
+      setError('Failed to export report as PDF');
+    } finally {
+      setExportingPDF(false);
+    }
   };
 
   const printSection = () => {
@@ -294,10 +327,12 @@ const Reports: React.FC = () => {
                 </Button>
                 {report && (
                   <>
-                    <Tooltip title="Export transactions to CSV">
-                      <Button variant="outlined" startIcon={<Download />} onClick={exportCSV} size="small">Export CSV</Button>
+                    <Tooltip title="Export transactions to PDF">
+                      <Button variant="outlined" startIcon={<Download />} onClick={exportPDF} disabled={exportingPDF} size="small">
+                        {exportingPDF ? 'Exporting...' : 'Export PDF'}
+                      </Button>
                     </Tooltip>
-                    <Tooltip>
+                    <Tooltip title="Print transactions report">
                       <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                         Print
                       </Button>
@@ -401,7 +436,9 @@ const Reports: React.FC = () => {
                     <Typography variant="h6" fontWeight={600} color="#0D47A1">
                       Transaction Details ({report.payments.length} records)
                     </Typography>
-                    <Button variant="outlined" size="small" startIcon={<Download />} onClick={exportCSV}>Export CSV</Button>
+                    <Button variant="outlined" size="small" startIcon={<Download />} onClick={exportPDF} disabled={exportingPDF}>
+                      {exportingPDF ? 'Exporting...' : 'Export PDF'}
+                    </Button>
                   </Box>
                   <Box sx={{ overflowX: 'auto' }}>
                     <Table size="small">
@@ -465,7 +502,7 @@ const Reports: React.FC = () => {
                 <Button variant="contained" onClick={loadReport} disabled={loading}>
                   {loading ? <CircularProgress size={20} color="inherit" /> : 'Generate'}
                 </Button>
-                <Tooltip>
+                <Tooltip title="Print collection report">
                   <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                     Print
                   </Button>
@@ -625,7 +662,7 @@ const Reports: React.FC = () => {
           ) : analytics ? (
             <>
               <Box className="reports-print-controls" display="flex" justifyContent="flex-end" mb={2}>
-                <Tooltip>
+                <Tooltip title="Print analytics report">
                   <Button variant="contained" color="primary" size="small" startIcon={<Print />} onClick={printSection}>
                     Print
                   </Button>
