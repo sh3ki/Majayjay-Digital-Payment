@@ -22,19 +22,27 @@ const Payments: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
+      if (!hasSearched || !debouncedSearch) {
+        setPayments([]);
+        setTotal(0);
+        setLoading(false);
+        return;
+      }
       const params: Record<string, string | number> = { page, limit: PAGE_SIZE };
       if (status) params.status = status;
-      if (search) params.search = search;
+      params.search = debouncedSearch;
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
       const res = await paymentsService.getPayments(params);
@@ -47,16 +55,25 @@ const Payments: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, status, search, startDate, endDate]);
+  }, [page, debouncedSearch, status, startDate, endDate, hasSearched, isResident]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const value = search.trim();
+      setDebouncedSearch(value);
+      setHasSearched(Boolean(value));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const handleFilter = (setter: (v: string) => void) => (e: React.ChangeEvent<HTMLInputElement | { value: unknown }>) => {
     setter(e.target.value as string);
     setPage(1);
   };
 
-  const clearFilters = () => { setSearch(''); setStatus(''); setStartDate(''); setEndDate(''); setPage(1); };
+  const clearFilters = () => { setSearch(''); setStatus(''); setStartDate(''); setEndDate(''); setPage(1); setHasSearched(false); };
   const hasFilters = search || status || startDate || endDate;
 
   return (
@@ -83,7 +100,7 @@ const Payments: React.FC = () => {
             />
             <FormControl size="small" sx={{ minWidth: 150 }}>
               <InputLabel>Status</InputLabel>
-              <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value as string); setPage(1); }}>
+              <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value as string); setHasSearched(true); setPage(1); }}>
                 <MenuItem value="">All Statuses</MenuItem>
                 <MenuItem value="PAID">Paid</MenuItem>
                 <MenuItem value="PENDING">Pending</MenuItem>
@@ -92,9 +109,9 @@ const Payments: React.FC = () => {
               </Select>
             </FormControl>
             <TextField size="small" label="From" type="date" value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
+              onChange={(e) => { setStartDate(e.target.value); setHasSearched(true); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
             <TextField size="small" label="To" type="date" value={endDate}
-              onChange={(e) => { setEndDate(e.target.value); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
+              onChange={(e) => { setEndDate(e.target.value); setHasSearched(true); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
             {hasFilters && (
               <Chip label="Clear filters" size="small" onDelete={clearFilters} color="default" />
             )}
@@ -103,7 +120,7 @@ const Payments: React.FC = () => {
 
           {loading ? (
             <Box display="flex" justifyContent="center" p={4}><CircularProgress sx={{ color: '#1565C0' }} /></Box>
-          ) : (
+          ) : hasSearched && search.trim() ? (
             <>
               <Box sx={{ overflowX: 'auto' }}>
                 <Table size="small">
@@ -168,6 +185,10 @@ const Payments: React.FC = () => {
                 </Box>
               )}
             </>
+          ) : (
+            <Box py={6} textAlign="center">
+              <Typography color="text.secondary">Search for a payment to view results.</Typography>
+            </Box>
           )}
         </CardContent>
       </Card>
