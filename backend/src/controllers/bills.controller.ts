@@ -7,19 +7,35 @@ export const billsController = {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const { status, search, startDate, endDate } = req.query as Record<string, string>;
+      const { status, search, item, startDate, endDate } = req.query as Record<string, string>;
 
       let payerId: number | undefined;
       if (req.user?.role === 'resident') payerId = req.user.sub;
       else if (req.query.payerId) payerId = parseInt(req.query.payerId as string);
 
       const { bills, total } = await billsService.getBills({
-        page, limit, status, payerId, search, startDate, endDate,
+        page, limit, status, payerId, search, item, startDate, endDate,
       });
       sendPaginated(res, bills, total, page, limit, 'Bills retrieved');
     } catch (err) {
       next(err);
     }
+  },
+
+  async getBillSummary(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { search, item } = req.query as Record<string, string>;
+      const summary = await billsService.getBillSummary({ search, item, userRole: req.user?.role });
+      sendSuccess(res, summary, 'Bill summary retrieved');
+    } catch (err) { next(err); }
+  },
+
+  async searchPayers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const search = String(req.query.search || '').trim();
+      if (search.length < 2) return sendSuccess(res, [], 'Payers retrieved');
+      sendSuccess(res, await billsService.searchPayers(search), 'Payers retrieved');
+    } catch (err) { next(err); }
   },
 
   async getBillById(req: Request, res: Response, next: NextFunction) {
