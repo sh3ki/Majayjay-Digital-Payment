@@ -134,7 +134,8 @@ const ResidentDashboard: React.FC = () => {
                   <Typography color="text.secondary">All bills are paid!</Typography>
                 </Box>
               ) : (
-                <Table size="small">
+                <Box sx={{ overflowX: 'auto', width: '100%' }}>
+                <Table size="small" sx={{ minWidth: { xs: 560, md: 'auto' } }}>
                   <TableHead>
                     <TableRow sx={{ bgcolor: '#F5F7FA' }}>
                       <TableCell sx={{ fontWeight: 700 }}>Bill No.</TableCell>
@@ -163,6 +164,7 @@ const ResidentDashboard: React.FC = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </Box>
               )}
             </CardContent>
           </Card>
