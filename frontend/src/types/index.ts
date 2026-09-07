@@ -82,7 +82,6 @@ export interface Bill {
 
 export interface CreateBillDto {
   payerId: number;
-  billType?: 'INDIVIDUAL' | 'BUSINESS';
   dueDate: string;
   billingPeriodStart?: string;
   billingPeriodEnd?: string;
