@@ -7,6 +7,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', billsController.getBills);
+router.get('/summary', billsController.getBillSummary);
+router.get('/payers', authorize('admin', 'collector'), billsController.searchPayers);
 router.get('/search', billsController.searchBills);
 router.get('/:id', billsController.getBillById);
 router.post('/', authorize('admin', 'cashier', 'collector'), billsController.createBill);
