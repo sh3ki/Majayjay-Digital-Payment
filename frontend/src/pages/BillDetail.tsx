@@ -342,9 +342,9 @@ const BillDetail: React.FC = () => {
                 </Typography>
               </Box>
 
-              {bill.currentPenaltyTotal > 0 && (
+              {(bill.currentPenaltyTotal || 0) > 0 && (
                 <Alert severity="warning" sx={{ mt: 2, fontSize: 12 }}>
-                  ₱{bill.currentPenaltyTotal.toFixed(2)} in penalties apply. Pay now to avoid more charges.
+                  ₱{(bill.currentPenaltyTotal || 0).toFixed(2)} in penalties apply. Pay now to avoid more charges.
                 </Alert>
               )}
 
