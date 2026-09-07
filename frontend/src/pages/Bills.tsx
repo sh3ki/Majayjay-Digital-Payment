@@ -44,21 +44,23 @@ const Bills: React.FC = () => {
   const [error, setError] = useState('');
 
   // Determine which status options to show
-  const statusOptions = (isCashier || isResident) ? STATUS_OPTIONS_CASHIER_RESIDENT : STATUS_OPTIONS_ALL;
+  const statusOptions = isResident ? STATUS_OPTIONS_ALL : isCashier ? STATUS_OPTIONS_CASHIER_RESIDENT : STATUS_OPTIONS_ALL;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      if (!hasSearched || !debouncedSearch) { setBills([]); setTotal(0); setLoading(false); return; }
+      // Residents always see their complete bill list on entry. Search and
+      // filters are optional refinements; staff search behavior is unchanged.
+      if (!isResident && (!hasSearched || !debouncedSearch)) { setBills([]); setTotal(0); setLoading(false); return; }
       const params: Record<string, string | number> = { page, limit: 20 };
-      params.search = debouncedSearch;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (status) params.status = status;
       if (item) params.item = item;
       const res = await billsService.getBills(params);
       if (res.data) {
         // Filter out ISSUED bills for cashiers and residents
-        const filtered = (isCashier || isResident) 
+        const filtered = isCashier
           ? res.data.filter((bill) => bill.status !== 'ISSUED')
           : res.data;
         setBills(filtered);
@@ -86,7 +88,7 @@ const Bills: React.FC = () => {
     billsService.getBillSummary({ search: search.trim(), item })
       .then((res) => { if (res.data) { setCounts(res.data.counts); setItemOptions(res.data.items); } })
       .catch(() => { /* bill list reports the actionable error */ });
-  }, [search, item, isCashier]);
+  }, [search, item, isCashier, isResident]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -196,7 +198,7 @@ const Bills: React.FC = () => {
             <Box display="flex" justifyContent="center" p={4}>
               <CircularProgress sx={{ color: '#1565C0' }} />
             </Box>
-          ) : !hasSearched || !search.trim() ? (
+          ) : !isResident && (!hasSearched || !search.trim()) ? (
             <Box py={6} textAlign="center"><Typography color="text.secondary">Search for a bill to view results.</Typography></Box>
           ) : (
             <>
