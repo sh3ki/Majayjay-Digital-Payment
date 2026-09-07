@@ -209,25 +209,28 @@ const ResidentDashboard: React.FC = () => {
 
 // ── Staff Dashboard ───────────────────────────────────────────────────────────
 const Dashboard: React.FC = () => {
-  const { isResident } = useAuth();
+  const { isResident, isCashier, isCollector, isAdmin } = useAuth();
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
   const [revenue, setRevenue] = useState<MonthlyRevenue[]>([]);
   const [methodBreakdown, setMethodBreakdown] = useState<PaymentMethodBreakdown[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [billSummary, setBillSummary] = useState<{ counts: Record<string, number> } | null>(null);
 
   useEffect(() => {
     if (isResident) { setLoading(false); return; }
     const load = async () => {
       try {
-        const [kpiRes, revRes, methodRes] = await Promise.all([
+        const [kpiRes, revRes, methodRes, billRes] = await Promise.all([
           reportsService.getDashboardAnalytics(),
           reportsService.getRevenueSummary(),
           reportsService.getPaymentMethodBreakdown(),
+          billsService.getBillSummary(),
         ]);
         if (kpiRes.data) setKpis(kpiRes.data);
         if (revRes.data) setRevenue(revRes.data);
         if (methodRes.data) setMethodBreakdown(methodRes.data);
+        if (billRes.data) setBillSummary(billRes.data);
       } catch {
         setError('Failed to load dashboard data');
       } finally {
@@ -294,6 +297,19 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
       </Grid>
+
+      {(isAdmin || isCollector || isCashier) && <>
+        <Grid container spacing={3} mb={3}>
+          {[
+            ['Bills Paid', 'PAID', '#4CAF50', <CheckCircle />],
+            ['Bills Unpaid', 'UNPAID', '#FF9800', <PendingActions />],
+            ['Partially Paid', 'PARTIALLY_PAID', '#1565C0', <Receipt />],
+            ['Overdue', 'OVERDUE', '#F44336', <ErrorIcon />],
+          ].map(([title, key, color, icon]) => <Grid item xs={12} sm={6} md={3} key={key as string}>
+            <KPICard title={title as string} value={String(billSummary?.counts[key as string] || 0)} icon={icon as React.ReactNode} color={color as string} />
+          </Grid>)}
+        </Grid>
+      </>}
 
       {/* Charts Row */}
       <Grid container spacing={3} mb={3}>
