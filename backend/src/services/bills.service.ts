@@ -20,10 +20,11 @@ export const billsService = {
     status?: string;
     payerId?: number;
     search?: string;
+    item?: string;
     startDate?: string;
     endDate?: string;
   }) {
-    const { page, limit, status, payerId, search, startDate, endDate } = params;
+    const { page, limit, status, payerId, search, item, startDate, endDate } = params;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
@@ -40,8 +41,10 @@ export const billsService = {
         { payer: { firstName: { contains: search, mode: 'insensitive' } } },
         { payer: { lastName: { contains: search, mode: 'insensitive' } } },
         { payer: { email: { contains: search, mode: 'insensitive' } } },
+        { items: { some: { feeName: { contains: search, mode: 'insensitive' } } } },
       ];
     }
+    if (item) where.items = { some: { feeName: item } };
 
     const [bills, total] = await Promise.all([
       prisma.bill.findMany({
@@ -59,6 +62,55 @@ export const billsService = {
     ]);
 
     return { bills, total };
+  },
+
+  async getBillSummary(params: { search?: string; item?: string; userRole?: string }) {
+    const { search, item, userRole } = params;
+    const where: Record<string, unknown> = {};
+    if (userRole === 'cashier') where.status = { not: 'ISSUED' };
+    if (search) {
+      where.OR = [
+        { billNumber: { contains: search, mode: 'insensitive' } },
+        { payer: { firstName: { contains: search, mode: 'insensitive' } } },
+        { payer: { lastName: { contains: search, mode: 'insensitive' } } },
+        { payer: { email: { contains: search, mode: 'insensitive' } } },
+        { items: { some: { feeName: { contains: search, mode: 'insensitive' } } } },
+      ];
+    }
+    if (item) where.items = { some: { feeName: item } };
+    const itemWhere: Record<string, unknown> = userRole === 'cashier' ? { status: { not: 'ISSUED' } } : {};
+    const [groups, itemRows] = await Promise.all([
+      prisma.bill.groupBy({ by: ['status'], where: where as any, _count: { _all: true } }),
+      prisma.billItem.findMany({ where: { bill: itemWhere as any }, select: { feeName: true }, distinct: ['feeName'], orderBy: { feeName: 'asc' } }),
+    ]);
+    const counts: Record<string, number> = {};
+    groups.forEach((group) => { counts[group.status] = group._count._all; });
+    return { counts, items: itemRows.map((row) => row.feeName) };
+  },
+
+  async searchPayers(search: string) {
+    return prisma.user.findMany({
+      where: {
+        status: 'ACTIVE',
+        role: { roleName: 'resident' },
+        OR: [
+          { firstName: { contains: search, mode: 'insensitive' } },
+          { lastName: { contains: search, mode: 'insensitive' } },
+        ],
+      },
+      take: 20,
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        contactNumber: true,
+        address: true,
+        barangay: true,
+        role: { select: { roleName: true } },
+      },
+    });
   },
 
   async getBillById(id: number, currentUserId?: number, userRole?: string) {
@@ -245,4 +297,3 @@ export const billsService = {
     return updated;
   },
 };
-
