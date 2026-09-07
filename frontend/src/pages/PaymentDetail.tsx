@@ -127,9 +127,9 @@ const PaymentDetail: React.FC = () => {
 
   return (
     <Box>
-      <Box className="page-header no-print" display="flex" justifyContent="space-between" alignItems="center">
+      <Box className="page-header no-print" display="flex" justifyContent="space-between" alignItems="center" gap={1}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate(-1)}>Back</Button>
-        <Box display="flex" gap={1}>
+        <Box display="flex" gap={1} flexWrap="wrap" sx={{ justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
           {receipt && (
             <Button startIcon={<Download />} onClick={handleDownloadPDF} disabled={downloading} variant="contained" sx={{ bgcolor: '#1565C0' }}>
               {downloading ? 'Downloading...' : 'Download PDF'}
@@ -141,7 +141,7 @@ const PaymentDetail: React.FC = () => {
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={12}>
-          <Box id="receipt-wrapper" sx={{ maxWidth: 720, mx: 'auto', border: '1px solid #000', p: 2, bgcolor: '#fff' }}>
+          <Box id="receipt-wrapper" sx={{ maxWidth: 720, width: '100%', mx: 'auto', border: '1px solid #000', p: { xs: 1, sm: 2 }, bgcolor: '#fff', overflow: 'hidden' }}>
             <Box sx={{ borderBottom: '1px solid #000', pb: 1, mb: 1 }}>
               <Typography align="center" fontWeight={800} fontSize={24}>OFFICIAL RECEIPT</Typography>
               <Typography align="center" fontWeight={700} fontSize={12}>REPUBLIC OF THE PHILIPPINES</Typography>
@@ -150,7 +150,7 @@ const PaymentDetail: React.FC = () => {
             </Box>
 
             <Grid container spacing={1} sx={{ mb: 1 }}>
-              <Grid item xs={8}>
+              <Grid item xs={12} sm={8}>
                 <Box sx={{ border: '1px solid #000', p: 1 }}>
                   <Typography variant="caption">DATE ISSUED:</Typography>
                   <Typography fontFamily="monospace">{receipt?.orData?.date || (receipt?.createdAt ? formatDate(receipt.createdAt) : formatDate(payment.createdAt))}</Typography>
@@ -165,7 +165,7 @@ const PaymentDetail: React.FC = () => {
                   </Box>
                 </Box>
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={12} sm={4}>
                 <Box sx={{ border: '1px solid #000', p: 1, height: '100%' }}>
                   <Typography variant="caption">O.R. No.</Typography>
                   <Typography fontFamily="monospace" fontWeight={700} fontSize={16}>{receipt?.orNumber}</Typography>
@@ -178,13 +178,13 @@ const PaymentDetail: React.FC = () => {
             </Grid>
 
             <Grid container spacing={1} sx={{ mb: 1 }}>
-              <Grid item xs={8}>
+              <Grid item xs={12} sm={8}>
                 <Box sx={{ border: '1px solid #000', p: 1 }}>
                   <Typography variant="caption">BILL NO.:</Typography>
                   <Typography fontFamily="monospace">{(payment.bill as any)?.billNumber || '-'}</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={12} sm={4}>
                 <Box sx={{ border: '1px solid #000', p: 1 }}>
                   <Typography variant="caption">FUND</Typography>
                   <Typography>-</Typography>
@@ -199,11 +199,11 @@ const PaymentDetail: React.FC = () => {
             </Box>
 
             <Box sx={{ border: '1px solid #000', mb: 1 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ border: '1px solid #000', padding: 6, width: 40, textAlign: 'center' }}>NO</th>
-                    <th style={{ border: '1px solid #000', padding: 6, textAlign: 'left' }}>FEE NAME</th>
+                    <th style={{ border: '1px solid #000', padding: 6, textAlign: 'left', overflowWrap: 'anywhere' }}>FEE NAME</th>
                     <th style={{ border: '1px solid #000', padding: 6, width: 140, textAlign: 'right' }}>AMOUNT</th>
                   </tr>
                 </thead>
@@ -211,7 +211,7 @@ const PaymentDetail: React.FC = () => {
                   {items.map((it: any, idx: number) => (
                     <tr key={idx}>
                       <td style={{ border: '1px solid #000', padding: 8, textAlign: 'center' }}>{idx + 1}</td>
-                      <td style={{ border: '1px solid #000', padding: 8 }}>{it.feeName || it.description || ''}</td>
+                      <td style={{ border: '1px solid #000', padding: 8, overflowWrap: 'anywhere' }}>{it.feeName || it.description || ''}</td>
                       <td style={{ border: '1px solid #000', padding: 8, textAlign: 'right' }}>{formatCurrency(it.amount || 0)}</td>
                     </tr>
                   ))}
@@ -220,13 +220,13 @@ const PaymentDetail: React.FC = () => {
             </Box>
 
             <Grid container spacing={1} sx={{ mb: 1 }}>
-              <Grid item xs={8}>
+              <Grid item xs={12} sm={8}>
                 <Box sx={{ border: '1px solid #000', p: 1 }}>
                   <Typography variant="caption">PAYMENT METHOD</Typography>
                   <Typography>{receipt?.orData?.paymentMethod || method?.methodName || ''}</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={4}>
+              <Grid item xs={12} sm={4}>
                 <Box sx={{ border: '1px solid #000', p: 1, height: '100%' }}>
                   <Typography variant="caption">TOTAL</Typography>
                   <Typography fontWeight={700} fontSize={18} textAlign="right">{formatCurrency(payment.amount)}</Typography>
