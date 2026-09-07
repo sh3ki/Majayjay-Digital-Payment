@@ -25,7 +25,8 @@ export const billsController = {
   async getBillSummary(req: Request, res: Response, next: NextFunction) {
     try {
       const { search, item } = req.query as Record<string, string>;
-      const summary = await billsService.getBillSummary({ search, item, userRole: req.user?.role });
+      const payerId = req.user?.role === 'resident' ? req.user.sub : undefined;
+      const summary = await billsService.getBillSummary({ search, item, userRole: req.user?.role, payerId });
       sendSuccess(res, summary, 'Bill summary retrieved');
     } catch (err) { next(err); }
   },
