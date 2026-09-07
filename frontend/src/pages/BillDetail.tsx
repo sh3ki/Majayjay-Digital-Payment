@@ -177,13 +177,13 @@ const BillDetail: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+              <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2} gap={2} sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
                 <Box>
                   <Typography variant="h6" fontWeight={700} fontFamily="monospace">{bill.billNumber}</Typography>
                   <StatusBadge status={bill.status} />
                 </Box>
                 {isCollector && bill.status === 'ISSUED' && (
-                  <Box display="flex" gap={1} flexWrap="wrap">
+                  <Box display="flex" gap={1} flexWrap="wrap" sx={{ width: { xs: '100%', sm: 'auto' } }}>
                     <Button variant="contained" color="success" size="small" onClick={() => setConfirmOpen(true)}>
                       Confirm Bill
                     </Button>
@@ -193,7 +193,7 @@ const BillDetail: React.FC = () => {
                   </Box>
                 )}
                 {(isAdmin || isCashier) && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && bill.status !== 'ISSUED' && (
-                    <Box display="flex" gap={1} flexWrap="wrap">
+                    <Box display="flex" gap={1} flexWrap="wrap" sx={{ width: { xs: '100%', sm: 'auto' } }}>
                       <Box display="flex" gap={1}>
                         <Button
                           variant="contained"
@@ -228,7 +228,7 @@ const BillDetail: React.FC = () => {
                     </Box>
                 )}
                 {isResident && bill.status !== 'PAID' && bill.status !== 'CANCELLED' && (
-                  <Box display="flex" gap={1} flexWrap="wrap">
+                  <Box display="flex" gap={1} flexWrap="wrap" sx={{ width: { xs: '100%', sm: 'auto' } }}>
                     <Button variant="contained" startIcon={<PhoneAndroid />} size="small" disabled={onlinePayLoading}
                       onClick={() => handlePayOnline('gcash')}
                       sx={{ bgcolor: '#00B0F0', '&:hover': { bgcolor: '#0090D0' } }}>
