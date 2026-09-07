@@ -49,6 +49,32 @@ body {
   margin-bottom: 24px;
 }
 
+/* Mobile-only layout adjustments. Desktop presentation is intentionally unchanged. */
+@media (max-width: 599px) {
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .page-header > :last-child {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .page-header > :last-child > .MuiButton-root {
+    max-width: 100%;
+  }
+
+  .MuiCardContent-root {
+    padding: 16px;
+  }
+
+  .MuiCardContent-root:last-child {
+    padding-bottom: 16px;
+  }
+}
+
 .section-card {
   background: white;
   border-radius: 8px;
