@@ -156,19 +156,19 @@ const Bills: React.FC = () => {
               value={search}
               onChange={handleSearch}
               size="small"
-              sx={{ flex: '1 1 420px', minWidth: 320 }}
+              sx={{ flex: '1 1 420px', minWidth: { xs: '100%', sm: 320 }, width: { xs: '100%', sm: 'auto' } }}
               InputProps={{
                 startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
               }}
             />
-            <FormControl size="small" sx={{ minWidth: 220 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 220 }, width: { xs: '100%', sm: 'auto' } }}>
               <InputLabel>Item</InputLabel>
               <Select value={item} label="Item" onChange={(e) => { setItem(e.target.value); setHasSearched(true); setPage(1); }}>
                 <MenuItem value="">All Items</MenuItem>
                 {itemOptions.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 160 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 160 }, width: { xs: '100%', sm: 'auto' } }}>
               <InputLabel>Status</InputLabel>
               <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value); setHasSearched(true); setPage(1); }}>
                 {statusOptions.map((s) => (
@@ -176,7 +176,7 @@ const Bills: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-            <Button variant="outlined" startIcon={<Refresh />} onClick={resetFilters}>
+            <Button variant="outlined" startIcon={<Refresh />} onClick={resetFilters} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               Reset Filters
             </Button>
           </Box>
