@@ -4,7 +4,7 @@ import {
   Box, Typography, Card, CardContent, Button, TextField, InputAdornment,
   IconButton, Select, MenuItem, FormControl, InputLabel, Pagination, Chip,
   Table, TableHead, TableBody, TableRow, TableCell, CircularProgress, Alert,
-  Dialog, DialogTitle, DialogContent, DialogActions, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, TableSortLabel,
 } from '@mui/material';
 import { Search, Add, Refresh } from '@mui/icons-material';
 import { billsService } from '../services/bills.service';
@@ -33,8 +33,14 @@ const Bills: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [status, setStatus] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [item, setItem] = useState('');
+  const [itemOptions, setItemOptions] = useState<string[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [hasSearched, setHasSearched] = useState(false);
+  const [sort, setSort] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'billDate', direction: 'desc' });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Determine which status options to show
@@ -44,9 +50,11 @@ const Bills: React.FC = () => {
     setLoading(true);
     setError('');
     try {
+      if (!hasSearched || !debouncedSearch) { setBills([]); setTotal(0); setLoading(false); return; }
       const params: Record<string, string | number> = { page, limit: 20 };
-      if (search) params.search = search;
+      params.search = debouncedSearch;
       if (status) params.status = status;
+      if (item) params.item = item;
       const res = await billsService.getBills(params);
       if (res.data) {
         // Filter out ISSUED bills for cashiers and residents
@@ -61,14 +69,47 @@ const Bills: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, status, isCashier, isResident]);
+  }, [page, debouncedSearch, status, item, hasSearched, isCashier, isResident]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const value = search.trim();
+      setDebouncedSearch(value);
+      setHasSearched(Boolean(value));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    billsService.getBillSummary({ search: search.trim(), item })
+      .then((res) => { if (res.data) { setCounts(res.data.counts); setItemOptions(res.data.items); } })
+      .catch(() => { /* bill list reports the actionable error */ });
+  }, [search, item, isCashier]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setPage(1);
   };
+  const resetFilters = () => {
+    setSearch('');
+    setItem('');
+    setStatus('');
+    setPage(1);
+    setHasSearched(false);
+    setError('');
+  };
+  const sortBills = (key: string) => {
+    setSort((current) => ({ key, direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc' }));
+  };
+  const sortedBills = [...bills].sort((a, b) => {
+    const keyForSort = sort.key;
+    const value = (bill: Bill): string | number => keyForSort === 'items' ? (bill.items || []).map((i) => i.feeName).join(', ').toLowerCase() : keyForSort === 'total' ? Number(bill.totalAmount) : keyForSort === 'balance' ? Number(bill.balanceAmount) : keyForSort === 'status' ? bill.status : new Date((bill as unknown as Record<string, string>)[keyForSort]).getTime();
+    const av = value(a), bv = value(b);
+    const result = av < bv ? -1 : av > bv ? 1 : 0;
+    return sort.direction === 'asc' ? result : -result;
+  });
 
   return (
     <Box>
@@ -115,22 +156,38 @@ const Bills: React.FC = () => {
               value={search}
               onChange={handleSearch}
               size="small"
-              sx={{ minWidth: 260 }}
+              sx={{ flex: '1 1 420px', minWidth: 320 }}
               InputProps={{
                 startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment>,
               }}
             />
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel>Item</InputLabel>
+              <Select value={item} label="Item" onChange={(e) => { setItem(e.target.value); setHasSearched(true); setPage(1); }}>
+                <MenuItem value="">All Items</MenuItem>
+                {itemOptions.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
+              </Select>
+            </FormControl>
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <InputLabel>Status</InputLabel>
-              <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+              <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value); setHasSearched(true); setPage(1); }}>
                 {statusOptions.map((s) => (
                   <MenuItem key={s} value={s}>{s || 'All Statuses'}</MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <IconButton onClick={load} title="Refresh">
-              <Refresh />
-            </IconButton>
+            <Button variant="outlined" startIcon={<Refresh />} onClick={resetFilters}>
+              Reset Filters
+            </Button>
+          </Box>
+
+          <Box display="flex" gap={1} flexWrap="wrap" mb={3}>
+            <Chip label={`Paid: ${counts.PAID || 0}`} color="success" variant={status === 'PAID' ? 'filled' : 'outlined'} onClick={() => { setStatus('PAID'); setHasSearched(true); }} />
+            <Chip label={`Unpaid: ${counts.UNPAID || 0}`} color="warning" variant={status === 'UNPAID' ? 'filled' : 'outlined'} onClick={() => { setStatus('UNPAID'); setHasSearched(true); }} />
+            <Chip label={`Partially paid: ${counts.PARTIALLY_PAID || 0}`} color="info" variant={status === 'PARTIALLY_PAID' ? 'filled' : 'outlined'} onClick={() => { setStatus('PARTIALLY_PAID'); setHasSearched(true); }} />
+            <Chip label={`Overdue: ${counts.OVERDUE || 0}`} color="error" variant={status === 'OVERDUE' ? 'filled' : 'outlined'} onClick={() => { setStatus('OVERDUE'); setHasSearched(true); }} />
+            <Chip label={`Issued: ${counts.ISSUED || 0}`} variant={status === 'ISSUED' ? 'filled' : 'outlined'} onClick={() => { setStatus('ISSUED'); setHasSearched(true); }} />
+            <Chip label={`Cancelled: ${counts.CANCELLED || 0}`} variant={status === 'CANCELLED' ? 'filled' : 'outlined'} onClick={() => { setStatus('CANCELLED'); setHasSearched(true); }} />
           </Box>
 
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -139,6 +196,8 @@ const Bills: React.FC = () => {
             <Box display="flex" justifyContent="center" p={4}>
               <CircularProgress sx={{ color: '#1565C0' }} />
             </Box>
+          ) : !hasSearched || !search.trim() ? (
+            <Box py={6} textAlign="center"><Typography color="text.secondary">Search for a bill to view results.</Typography></Box>
           ) : (
             <>
               <Box sx={{ overflowX: 'auto' }}>
@@ -147,12 +206,13 @@ const Bills: React.FC = () => {
                     <TableRow>
                       <TableCell>Bill No.</TableCell>
                       {!isResident && <TableCell>Payer</TableCell>}
-                      <TableCell>Items</TableCell>
-                      <TableCell>Bill Date</TableCell>
-                      <TableCell>Due Date</TableCell>
-                      <TableCell align="right">Total</TableCell>
-                      <TableCell align="right">Balance</TableCell>
-                      <TableCell align="center">Status</TableCell>
+                      {(['items', 'billDate', 'dueDate', 'total', 'balance', 'status'] as const).map((key) => (
+                        <TableCell key={key} align={key === 'total' || key === 'balance' ? 'right' : key === 'status' ? 'center' : 'left'}>
+                          <TableSortLabel active={sort.key === key} direction={sort.key === key ? sort.direction : 'asc'} onClick={() => sortBills(key)}>
+                            {key === 'billDate' ? 'Bill Date' : key === 'dueDate' ? 'Due Date' : key === 'total' ? 'Total' : key === 'balance' ? 'Balance' : key[0].toUpperCase() + key.slice(1)}
+                          </TableSortLabel>
+                        </TableCell>
+                      ))}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -162,7 +222,7 @@ const Bills: React.FC = () => {
                           No bills found
                         </TableCell>
                       </TableRow>
-                    ) : bills.map((bill) => (
+                    ) : sortedBills.map((bill) => (
                       <TableRow
                         key={bill.id}
                         hover
