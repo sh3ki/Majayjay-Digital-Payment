@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Card, CardContent, TextField, Button, Grid,
-  Alert, FormControl, InputLabel, Select, MenuItem, Autocomplete,
+  Alert, Autocomplete, FormControl, InputLabel, Select, MenuItem,
   Table, TableHead, TableBody, TableRow, TableCell, IconButton, Divider,
   CircularProgress,
 } from '@mui/material';
@@ -23,6 +23,10 @@ interface PayerOption {
   id: number;
   label: string;
   email: string;
+  contactNumber?: string;
+  address?: string;
+  barangay?: string;
+  userReference: string;
 }
 
 const CreateBill: React.FC = () => {
@@ -30,13 +34,13 @@ const CreateBill: React.FC = () => {
   const [fees, setFees] = useState<Fee[]>([]);
   const [payers, setPayers] = useState<PayerOption[]>([]);
   const [selectedPayer, setSelectedPayer] = useState<PayerOption | null>(null);
-  const [billType, setBillType] = useState('INDIVIDUAL');
   const [dueDate, setDueDate] = useState('');
   const [billingPeriodStart, setBillingPeriodStart] = useState('');
   const [billingPeriodEnd, setBillingPeriodEnd] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<BillItem[]>([]);
   const [selectedFee, setSelectedFee] = useState<Fee | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [payerSearch, setPayerSearch] = useState('');
@@ -59,21 +63,38 @@ const CreateBill: React.FC = () => {
     if (!query) return options;
     const words = query.split(/\s+/);
     return options.filter((f) => {
-      const target = `${f.feeName} ${f.feeType} ${f.code ?? ''}`.toLowerCase();
+      const target = `${f.feeName} ${f.feeType}`.toLowerCase();
       return words.every((w) => target.includes(w));
     });
   };
 
+  const categories = Array.from(
+    new Map(
+      fees
+        .filter((fee) => fee.category)
+        .map((fee) => [fee.categoryId, fee.category!])
+    ).values()
+  ).sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+
+  const selectableFees = fees.filter((fee) =>
+    !items.find((item) => item.feeId === fee.id) &&
+    (!categoryFilter || String(fee.categoryId) === categoryFilter)
+  );
+
   useEffect(() => {
-    if (payerSearch.length < 2) return;
+    if (payerSearch.length < 2) { setPayers([]); return; }
     const timer = setTimeout(async () => {
       try {
-        const res = await adminService.getUsers({ search: payerSearch, limit: 20 });
+        const res = await billsService.searchPayers(payerSearch);
         if (res.data) {
-          setPayers((res.data as Array<{ id: number; firstName: string; lastName: string; email: string }>).map((u) => ({
+          setPayers(res.data.map((u) => ({
             id: u.id,
-            label: `${u.firstName} ${u.lastName}`,
+            label: `${u.lastName}, ${u.firstName}`,
             email: u.email,
+            contactNumber: u.contactNumber,
+            address: u.address,
+            barangay: u.barangay,
+            userReference: `${u.role?.roleName || 'resident'}-${String(u.id).padStart(3, '0')}`,
           })));
         }
       } catch {}
@@ -114,7 +135,6 @@ const CreateBill: React.FC = () => {
     try {
       await billsService.createBill({
         payerId: selectedPayer.id,
-        billType: billType as 'INDIVIDUAL' | 'BUSINESS',
         dueDate,
         billingPeriodStart: billingPeriodStart || undefined,
         billingPeriodEnd: billingPeriodEnd || undefined,
@@ -158,19 +178,23 @@ const CreateBill: React.FC = () => {
                       value={selectedPayer}
                       onChange={(_, v) => setSelectedPayer(v)}
                       onInputChange={(_, v) => setPayerSearch(v)}
-                      getOptionLabel={(o) => `${o.label} (${o.email})`}
-                      renderInput={(params) => <TextField {...params} label="Search Payer" required />}
+                      getOptionLabel={(o) => o.label}
+                      renderOption={(props, option) => (
+                        <Box component="li" {...props} sx={{ display: 'block !important', py: 1.25 }}>
+                          <Typography variant="body2" fontWeight={600}>{option.label} ({option.userReference})</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {option.email}{option.contactNumber ? `  ${option.contactNumber}` : ''}
+                          </Typography>
+                          {(option.address || option.barangay) && (
+                            <Typography variant="caption" color="text.secondary" display="block">
+                              {[option.address, option.barangay].filter(Boolean).join(', ')}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                      renderInput={(params) => <TextField {...params} label="Search Payer by Name" required />}
                       noOptionsText="Type to search payers..."
                     />
-                  </Grid>
-                  <Grid item xs={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Bill Type</InputLabel>
-                      <Select value={billType} label="Bill Type" onChange={(e) => setBillType(e.target.value)}>
-                        <MenuItem value="INDIVIDUAL">Individual</MenuItem>
-                        <MenuItem value="BUSINESS">Business</MenuItem>
-                      </Select>
-                    </FormControl>
                   </Grid>
                   <Grid item xs={6}>
                     <TextField fullWidth label="Due Date" type="date" value={dueDate}
@@ -195,17 +219,34 @@ const CreateBill: React.FC = () => {
             <Card>
               <CardContent>
                 <Typography variant="h6" fontWeight={600} color="#0D47A1" mb={2}>Fee Items</Typography>
+                <FormControl size="small" sx={{ minWidth: 220, mb: 1.5 }}>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    value={categoryFilter}
+                    label="Category"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setCategoryFilter(value);
+                      if (selectedFee && value && String(selectedFee.categoryId) !== value) setSelectedFee(null);
+                    }}
+                  >
+                    <MenuItem value="">All Categories</MenuItem>
+                    {categories.map((category) => (
+                      <MenuItem key={category.id} value={String(category.id)}>{category.categoryName}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <Box display="flex" gap={1} mb={2}>
                   <Autocomplete
                     sx={{ flex: 1 }}
-                    options={fees.filter((f) => !items.find((i) => i.feeId === f.id))}
+                    options={selectableFees}
                     value={selectedFee}
                     onChange={(_, v) => setSelectedFee(v)}
                     inputValue={feeInputValue}
                     onInputChange={(_, v) => setFeeInputValue(v)}
                     getOptionLabel={(f) => `${f.feeName} (${f.feeType})`}
                     filterOptions={fuzzyFilterFees}
-                    renderInput={(params) => <TextField {...params} label="Select Fee" size="small" />}
+                    renderInput={(params) => <TextField {...params} label="Search and Select Fee" size="small" />}
                   />
                   <Button variant="contained" startIcon={<Add />} onClick={addItem} disabled={!selectedFee}>Add</Button>
                 </Box>
@@ -215,8 +256,8 @@ const CreateBill: React.FC = () => {
                     <TableHead>
                       <TableRow>
                         <TableCell>Fee</TableCell>
+                        <TableCell>Applies To</TableCell>
                         <TableCell>Type</TableCell>
-                        <TableCell>Qty/Units</TableCell>
                         <TableCell>Override (₱)</TableCell>
                         <TableCell align="right">Amount</TableCell>
                         <TableCell />
@@ -226,14 +267,8 @@ const CreateBill: React.FC = () => {
                       {items.map((item) => (
                         <TableRow key={item.feeId}>
                           <TableCell>{item.fee.feeName}</TableCell>
+                          <TableCell>{item.fee.applicableTo}</TableCell>
                           <TableCell>{item.fee.feeType}</TableCell>
-                          <TableCell>
-                            {item.fee.feeType === 'VARIABLE' ? (
-                              <TextField size="small" type="number" value={item.quantity} sx={{ width: 70 }}
-                                onChange={(e) => updateItem(item.feeId, 'quantity', parseFloat(e.target.value) || 1)}
-                                inputProps={{ min: 0, step: 0.01 }} />
-                            ) : '-'}
-                          </TableCell>
                           <TableCell>
                             <TextField size="small" type="number" value={item.overrideAmount || ''}
                               sx={{ width: 90 }} placeholder="Auto"
