@@ -42,7 +42,7 @@ const Layout: React.FC = () => {
           component="main"
           sx={{
             flex: 1,
-            p: { xs: 2, sm: 3 },
+            p: { xs: 1.5, sm: 3 },
             mt: '64px', // Navbar height
             minWidth: 0,
             overflowX: 'hidden',
