@@ -120,16 +120,27 @@ export const paymentsService = {
     limit: number;
     status?: string;
     payerId?: number;
+    search?: string;
     startDate?: string;
     endDate?: string;
     paymentMethod?: string;
   }) {
-    const { page, limit, status, payerId, startDate, endDate } = params;
+    const { page, limit, status, payerId, search, startDate, endDate } = params;
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (payerId) where.payerId = payerId;
+    if (search) {
+      where.OR = [
+        { transactionId: { contains: search, mode: 'insensitive' } },
+        { referenceNumber: { contains: search, mode: 'insensitive' } },
+        { payer: { firstName: { contains: search, mode: 'insensitive' } } },
+        { payer: { lastName: { contains: search, mode: 'insensitive' } } },
+        { bill: { billNumber: { contains: search, mode: 'insensitive' } } },
+        { receipt: { orNumber: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
     if (startDate || endDate) {
       where.paymentDate = {};
       if (startDate) (where.paymentDate as Record<string, unknown>).gte = new Date(startDate);
