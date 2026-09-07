@@ -22,12 +22,11 @@ const Users: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [roles, setRoles] = useState<Array<{ id: number; roleName: string }>>([]);
-  const [departments, setDepartments] = useState<Array<{ id: number; departmentName: string }>>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [viewUser, setViewUser] = useState<User | null>(null);
-  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', contactNumber: '', roleId: '', departmentId: '' });
+  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', contactNumber: '', roleId: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,12 +46,8 @@ const Users: React.FC = () => {
   useEffect(() => {
     const loadMeta = async () => {
       try {
-        const [rolesRes, deptRes] = await Promise.all([
-          adminService.getRoles(),
-          adminService.getDepartments(),
-        ]);
-        setRoles(rolesRes.data || []);
-        setDepartments(deptRes.data || []);
+        const rolesRes = await adminService.getRoles();
+        setRoles((rolesRes.data || []).filter((role) => role.roleName.toLowerCase() !== 'department_viewer'));
       } catch {}
     };
     loadMeta();
@@ -60,9 +55,9 @@ const Users: React.FC = () => {
 
   const handleCreate = async () => {
     try {
-      await adminService.createUser({ ...form, roleId: parseInt(form.roleId), departmentId: form.departmentId ? parseInt(form.departmentId) : undefined } as Parameters<typeof adminService.createUser>[0]);
+      await adminService.createUser({ ...form, roleId: parseInt(form.roleId) } as Parameters<typeof adminService.createUser>[0]);
       setCreateOpen(false);
-      setForm({ email: '', password: '', firstName: '', lastName: '', contactNumber: '', roleId: '', departmentId: '' });
+      setForm({ email: '', password: '', firstName: '', lastName: '', contactNumber: '', roleId: '' });
       load();
     } catch { setError('Failed to create user'); }
   };
@@ -234,20 +229,8 @@ const Users: React.FC = () => {
               <FormControl fullWidth>
                 <InputLabel>Role</InputLabel>
                 <Select value={form.roleId} label="Role" onChange={(e) => setForm({ ...form, roleId: String(e.target.value) })}>
-                  <MenuItem value="1">Admin</MenuItem>
-                  <MenuItem value="2">Cashier</MenuItem>
-                  <MenuItem value="3">Department Viewer</MenuItem>
-                  <MenuItem value="4">Resident</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Department (Optional)</InputLabel>
-                <Select value={form.departmentId} label="Department (Optional)" onChange={(e) => setForm({ ...form, departmentId: String(e.target.value) })}>
-                  <MenuItem value="">None</MenuItem>
-                  {departments.map((d) => (
-                    <MenuItem key={d.id} value={String(d.id)}>{d.departmentName}</MenuItem>
+                  {roles.map((role) => (
+                    <MenuItem key={role.id} value={String(role.id)}>{role.roleName.replace(/_/g, ' ')}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
