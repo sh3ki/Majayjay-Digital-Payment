@@ -95,10 +95,10 @@ const Payments: React.FC = () => {
               size="small"
               placeholder={isResident ? 'Search by transaction ID or OR number…' : 'Search by payer name or transaction ID…'} value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              sx={{ flex: 1, minWidth: 240 }}
+              sx={{ flex: 1, minWidth: { xs: '100%', sm: 240 }, width: { xs: '100%', sm: 'auto' } }}
               InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
             />
-            <FormControl size="small" sx={{ minWidth: 150 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 150 }, width: { xs: '100%', sm: 'auto' } }}>
               <InputLabel>Status</InputLabel>
               <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value as string); setHasSearched(true); setPage(1); }}>
                 <MenuItem value="">All Statuses</MenuItem>
@@ -109,9 +109,9 @@ const Payments: React.FC = () => {
               </Select>
             </FormControl>
             <TextField size="small" label="From" type="date" value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); setHasSearched(true); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
+              onChange={(e) => { setStartDate(e.target.value); setHasSearched(true); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: { xs: '100%', sm: 155 } }} />
             <TextField size="small" label="To" type="date" value={endDate}
-              onChange={(e) => { setEndDate(e.target.value); setHasSearched(true); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
+              onChange={(e) => { setEndDate(e.target.value); setHasSearched(true); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: { xs: '100%', sm: 155 } }} />
             {hasFilters && (
               <Chip label="Clear filters" size="small" onDelete={clearFilters} color="default" />
             )}
