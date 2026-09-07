@@ -7,6 +7,25 @@ export const billsService = {
     return data;
   },
 
+  async getBillSummary(params?: Record<string, string>) {
+    const { data } = await api.get<ApiResponse<{ counts: Record<string, number>; items: string[] }>>('/bills/summary', { params });
+    return data;
+  },
+
+  async searchPayers(search: string) {
+    const { data } = await api.get<ApiResponse<Array<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      contactNumber?: string;
+      address?: string;
+      barangay?: string;
+      role?: { roleName: string };
+    }>>>('/bills/payers', { params: { search } });
+    return data;
+  },
+
   async getBillById(id: number) {
     const { data } = await api.get<ApiResponse<Bill>>(`/bills/${id}`);
     return data;
