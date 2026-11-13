@@ -55,6 +55,14 @@ const AuditLogs: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  const resetFilters = () => {
+    setAction('');
+    setSearch('');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+  };
+
   return (
     <Box>
       <Box className="page-header">
@@ -79,20 +87,19 @@ const AuditLogs: React.FC = () => {
               <Select value={action} label="Action" onChange={(e) => { setAction(e.target.value as string); setPage(1); }}>
                 <MenuItem value="">All Actions</MenuItem>
                 <MenuItem value="CREATE">Create</MenuItem>
+                <MenuItem value="READ">Read</MenuItem>
                 <MenuItem value="UPDATE">Update</MenuItem>
                 <MenuItem value="DELETE">Delete</MenuItem>
-                <MenuItem value="LOGIN">Login</MenuItem>
-                <MenuItem value="LOGOUT">Logout</MenuItem>
-                <MenuItem value="PAYMENT">Payment</MenuItem>
-                <MenuItem value="VIEW">View</MenuItem>
-                <MenuItem value="EXPORT">Export</MenuItem>
+                <MenuItem value="VERIFY">Verify</MenuItem>
+                <MenuItem value="APPROVE">Approve</MenuItem>
+                <MenuItem value="REJECT">Reject</MenuItem>
               </Select>
             </FormControl>
             <TextField size="small" label="From" type="date" value={startDate}
               onChange={(e) => { setStartDate(e.target.value); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
             <TextField size="small" label="To" type="date" value={endDate}
               onChange={(e) => { setEndDate(e.target.value); setPage(1); }} InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
-            <Tooltip title="Refresh"><IconButton onClick={load} size="small"><Refresh /></IconButton></Tooltip>
+            <Tooltip title="Reset filters"><IconButton onClick={resetFilters} size="small"><Refresh /></IconButton></Tooltip>
           </Box>
 
           {loading ? (
