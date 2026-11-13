@@ -10,6 +10,23 @@ interface ApiResponse<T = unknown> {
   timestamp: string;
 }
 
+/**
+ * Express delegates JSON serialization to JSON.stringify, which throws when
+ * a Prisma BigInt reaches the response body. Convert BigInts to strings so
+ * identifiers remain exact and API responses stay JSON-compatible.
+ */
+const toJsonSafe = <T>(value: T): T => {
+  if (typeof value === 'bigint') return value.toString() as T;
+  if (Array.isArray(value)) return value.map(toJsonSafe) as T;
+  if (value instanceof Date) return value;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, toJsonSafe(item)])
+    ) as T;
+  }
+  return value;
+};
+
 export const sendSuccess = <T>(
   res: Response,
   data: T,
@@ -21,7 +38,7 @@ export const sendSuccess = <T>(
     success: true,
     status: statusCode,
     message,
-    data,
+    data: toJsonSafe(data),
     timestamp: new Date().toISOString(),
   };
   if (meta) response.meta = meta;
