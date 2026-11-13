@@ -376,10 +376,11 @@ export const adminController = {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-      const { eventType, userId, startDate, endDate, search } = req.query as Record<string, string>;
+      const { eventType, action, userId, startDate, endDate, search } = req.query as Record<string, string>;
 
       const where: Record<string, unknown> = {};
       if (eventType) where.eventType = { contains: eventType, mode: 'insensitive' };
+      if (action) where.action = action;
       if (userId) where.userId = parseInt(userId);
       if (search) {
         where.user = {
