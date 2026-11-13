@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../config/database';
 import { sendSuccess, sendError, sendPaginated } from '../utils/response';
 import bcrypt from 'bcryptjs';
+import { AuditAction } from '@prisma/client';
 
 export const adminController = {
   // Users
@@ -377,11 +378,15 @@ export const adminController = {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
       const { eventType, action, userId, startDate, endDate, search } = req.query as Record<string, string>;
+      const validActions = Object.values(AuditAction) as string[];
 
       const where: Record<string, unknown> = {};
       if (eventType) where.eventType = { contains: eventType, mode: 'insensitive' };
-      if (action) where.action = action;
-      if (userId) where.userId = parseInt(userId);
+      if (action && validActions.includes(action)) where.action = action;
+      if (userId) {
+        const parsedUserId = Number.parseInt(userId, 10);
+        if (Number.isFinite(parsedUserId)) where.userId = parsedUserId;
+      }
       if (search) {
         where.user = {
           OR: [
@@ -393,11 +398,16 @@ export const adminController = {
       }
       if (startDate || endDate) {
         where.createdAt = {};
-        if (startDate) (where.createdAt as Record<string, unknown>).gte = new Date(startDate);
+        if (startDate) {
+          const start = new Date(startDate);
+          if (!Number.isNaN(start.getTime())) (where.createdAt as Record<string, unknown>).gte = start;
+        }
         if (endDate) {
           const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          (where.createdAt as Record<string, unknown>).lte = end;
+          if (!Number.isNaN(end.getTime())) {
+            end.setHours(23, 59, 59, 999);
+            (where.createdAt as Record<string, unknown>).lte = end;
+          }
         }
       }
 
