@@ -15,6 +15,19 @@ const ACTION_COLORS: Record<string, 'success' | 'error' | 'warning' | 'info' | '
   PAYMENT: 'success', VIEW: 'default', EXPORT: 'warning',
 };
 
+const ENTITY_LABELS: Record<string, string> = {
+  user: 'User',
+  bill: 'Bill',
+  payment: 'Payment',
+};
+
+const formatEntityReference = (entityType: string, entityId?: string) => {
+  if (!entityId || entityId === 'N/A') return '—';
+  const label = ENTITY_LABELS[entityType.toLowerCase()] || entityType;
+  const isNumericId = /^\d+$/.test(entityId);
+  return `${label}${isNumericId ? ` #${entityId}` : `: ${entityId}`}`;
+};
+
 const AuditLogs: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
@@ -94,7 +107,7 @@ const AuditLogs: React.FC = () => {
                       <TableCell sx={{ fontWeight: 700 }}>User</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Action</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Entity</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Entity ID</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Affected Record</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>IP Address</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Details</TableCell>
@@ -120,13 +133,15 @@ const AuditLogs: React.FC = () => {
                           <Chip label={log.action} size="small" color={ACTION_COLORS[log.action] || 'default'} />
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>{log.entityType || '—'}</TableCell>
-                        <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{log.entityId || '—'}</TableCell>
+                        <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>
+                          {formatEntityReference(log.entityType, log.entityId)}
+                        </TableCell>
                         <TableCell>
                           <Chip label={log.status} size="small" color={log.status === 'SUCCESS' ? 'success' : 'error'} />
                         </TableCell>
                         <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{log.ipAddress || '—'}</TableCell>
                         <TableCell sx={{ maxWidth: 200, fontSize: 11, color: '#757575' }}>
-                          {log.details ? JSON.stringify(log.details).slice(0, 80) : '—'}
+                          {log.reason || log.oldValue || log.newValue || '—'}
                         </TableCell>
                       </TableRow>
                     ))}
