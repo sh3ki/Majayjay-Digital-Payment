@@ -11,15 +11,32 @@ interface ApiResponse<T = unknown> {
 }
 
 /**
- * Express delegates JSON serialization to JSON.stringify, which throws when
- * a Prisma BigInt reaches the response body. Convert BigInts to strings so
- * identifiers remain exact and API responses stay JSON-compatible.
+ * Convert Prisma values to JSON-compatible values before sending a response.
+ *
+ * Prisma Decimal instances are deliberately handled before the generic object
+ * branch. Treating them as plain objects exposes decimal.js internals (`s`,
+ * `e`, and `d`) to the frontend, where Number(value) becomes NaN.
  */
 const toJsonSafe = <T>(value: T): T => {
   if (typeof value === 'bigint') return value.toString() as T;
   if (Array.isArray(value)) return value.map(toJsonSafe) as T;
   if (value instanceof Date) return value;
   if (value && typeof value === 'object') {
+    const decimal = value as unknown as {
+      constructor?: { name?: string };
+      toNumber?: () => number;
+      s?: number;
+      e?: number | null;
+      d?: number[];
+    };
+    const toNumber = decimal.toNumber;
+    const isDecimal =
+      (decimal.constructor?.name === 'Decimal' ||
+        (typeof decimal.s === 'number' && 'e' in decimal && Array.isArray(decimal.d))) &&
+      typeof toNumber === 'function';
+    if (isDecimal && toNumber) {
+      return toNumber.call(value) as T;
+    }
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, toJsonSafe(item)])
     ) as T;
