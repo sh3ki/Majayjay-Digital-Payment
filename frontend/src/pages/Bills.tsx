@@ -85,10 +85,10 @@ const Bills: React.FC = () => {
   }, [search]);
 
   useEffect(() => {
-    billsService.getBillSummary({ search: search.trim(), item })
+    billsService.getBillSummary({ search: debouncedSearch, item })
       .then((res) => { if (res.data) { setCounts(res.data.counts); setItemOptions(res.data.items); } })
       .catch(() => { /* bill list reports the actionable error */ });
-  }, [search, item, isCashier, isResident]);
+  }, [debouncedSearch, item, isCashier, isResident]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
