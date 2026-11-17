@@ -29,7 +29,10 @@ export const billsService = {
 
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
-    if (payerId) where.payerId = payerId;
+    // A resident's scope is supplied by the authenticated controller. Keep
+    // this check explicit so the scope is never dropped because of a
+    // truthiness check.
+    if (payerId !== undefined) where.payerId = payerId;
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) (where.createdAt as Record<string, unknown>).gte = new Date(startDate);
@@ -68,7 +71,8 @@ export const billsService = {
     const { search, item, userRole, payerId } = params;
     const where: Record<string, unknown> = {};
     if (userRole === 'cashier') where.status = { not: 'ISSUED' };
-    if (payerId) where.payerId = payerId;
+    // Summary counts must use the same resident scope as the bill list.
+    if (payerId !== undefined) where.payerId = payerId;
     if (search) {
       where.OR = [
         { billNumber: { contains: search, mode: 'insensitive' } },
@@ -80,7 +84,7 @@ export const billsService = {
     }
     if (item) where.items = { some: { feeName: item } };
     const itemWhere: Record<string, unknown> = userRole === 'cashier' ? { status: { not: 'ISSUED' } } : {};
-    if (payerId) itemWhere.bill = { payerId };
+    if (payerId !== undefined) itemWhere.bill = { payerId };
     const [groups, itemRows] = await Promise.all([
       prisma.bill.groupBy({ by: ['status'], where: where as any, _count: { _all: true } }),
       prisma.billItem.findMany({ where: { bill: itemWhere as any }, select: { feeName: true }, distinct: ['feeName'], orderBy: { feeName: 'asc' } }),
