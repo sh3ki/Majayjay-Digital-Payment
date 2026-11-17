@@ -89,13 +89,21 @@ body {
 
 /* Ensure printing only the receipt area and preserve layout */
 @media print {
-  @page { size: A4; margin: 10mm; }
+  @page { size: 58mm auto; margin: 0; }
   /* Scope receipt-only visibility rules to pages that actually render receipt wrapper. */
   body:has(#receipt-wrapper) * { visibility: hidden; }
   body:has(#receipt-wrapper) #receipt-wrapper,
   body:has(#receipt-wrapper) #receipt-wrapper * { visibility: visible; }
-  body:has(#receipt-wrapper) #receipt-wrapper { position: absolute; left: 0; top: 0; width: 100%; }
-  body:has(#receipt-wrapper) #receipt-wrapper { box-shadow: none !important; background: white !important; }
+  body:has(#receipt-wrapper) #receipt-wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 58mm;
+    padding: 2mm;
+    box-shadow: none !important;
+    background: white !important;
+    border: none !important;
+  }
 }
 
 /* hide time portion when printing (browser header/time handled separately) */
